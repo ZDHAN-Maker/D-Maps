@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="D'Maps">
+  <title>D'Maps (maskable)</title>
+  <!-- full-bleed background; artwork scaled into the central ~70% safe zone so OS masks never crop the pin -->
+  <rect width="512" height="512" fill="#FFFDF7"/>
+  <g transform="translate(256 262) scale(0.68) translate(-256 -256)">
+    <path d="M-120 330 C-30 300 150 360 250 335 C350 310 540 350 632 320 V640 H-120 Z" fill="#B9F3D0"/>
+    <path d="M-120 400 C0 380 190 430 290 410 C380 392 570 425 632 405 V640 H-120 Z" fill="#8DD9F5"/>
+    <path d="M96 470 C170 400 120 360 230 330 C330 305 300 270 256 250" fill="none" stroke="#FFFDF7" stroke-width="30" stroke-linecap="round"/>
+    <path d="M96 470 C170 400 120 360 230 330 C330 305 300 270 256 250" fill="none" stroke="#FFE27A" stroke-width="16" stroke-linecap="round"/>
+    <path d="M256 70 C190 70 142 118 142 182 C142 252 220 318 256 372 C292 318 370 252 370 182 C370 118 322 70 256 70 Z" fill="#FF9D91" stroke="#2B3A42" stroke-width="12" stroke-linejoin="round"/>
+    <circle cx="256" cy="182" r="52" fill="#FFFDF7" stroke="#2B3A42" stroke-width="12"/>
+    <path d="M256 150 L284 208 L256 194 L228 208 Z" fill="#2B3A42" stroke="#2B3A42" stroke-width="6" stroke-linejoin="round"/>
+  </g>
+</svg>

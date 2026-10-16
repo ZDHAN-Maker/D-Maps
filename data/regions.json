@@ -1,0 +1,21 @@
+{
+  "_comment": "Hand-maintained region hierarchy. `groups` are folders in the Offline Map Manager; `datasets` attach built datasets (public/data/<id>/manifest.json) to a parent group. Regenerate public/data/catalog.json with `npm run data:catalog`.",
+  "groups": [
+    {
+      "id": "indonesia",
+      "parent": null,
+      "name": "Indonesia",
+      "names": { "id": "Indonesia", "en": "Indonesia" }
+    },
+    {
+      "id": "test-fixtures",
+      "parent": null,
+      "name": "Dataset uji teknis (bukan data Indonesia)",
+      "names": { "id": "Dataset uji teknis (bukan data Indonesia)", "en": "Engineering test data (not Indonesia)" },
+      "testFixture": true
+    }
+  ],
+  "datasets": {
+    "monaco": { "parent": "test-fixtures", "testFixture": true }
+  }
+}

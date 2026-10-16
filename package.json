@@ -1,0 +1,50 @@
+{
+  "name": "dmaps",
+  "version": "0.1.0",
+  "private": true,
+  "description": "D'Maps \u2014 offline-first navigation web app for Indonesia",
+  "type": "module",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "data:monaco": "cd pipeline && .venv/bin/python -I -m dmaps_pipeline.build_dataset --pbf ../data/fixtures/monaco/monaco.osm.pbf --id monaco --name 'Monaco (test fixture)' --source-note 'OSRM test fixture; engineering validation only, not Indonesian data' --out ../public/data/monaco",
+    "perf": "vitest run --config vitest.perf.config.ts measure",
+    "measure:data": "python3 -I scripts/measure_dataset.py",
+    "data:catalog": "cd pipeline && .venv/bin/python -I -m dmaps_pipeline.catalog --data ../public/data --regions ../data/regions.json",
+    "notices": "node scripts/gen_notices.mjs",
+    "perf:scale": "NODE_OPTIONS=--max-old-space-size=6144 vitest run --config vitest.perf.config.ts scale"
+  },
+  "dependencies": {
+    "i18next": "^26.4.3",
+    "idb": "^8.0.4",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^1.55.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-i18next": "^17.0.16"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.0",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "eslint": "^10.12.0",
+    "fake-indexeddb": "^6.2.5",
+    "globals": "^17.13.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^8.3.4",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.3"
+  }
+}

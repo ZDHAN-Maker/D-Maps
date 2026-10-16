@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dmaps-pipeline"
+version = "0.1.0"
+description = "Offline dataset builder for D'Maps (OSM PBF -> routing graph, search index, render features)"
+requires-python = ">=3.10"
+dependencies = ["osmium>=4.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools]
+packages = ["dmaps_pipeline"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,261 @@
+{
+  "note": "SYNTHETIC hierarchical grid (4 edges/node; real road graphs have ~1.75 in Monaco). Node on a cloud VM. Not real data, not a phone.",
+  "node": "v22.22.0",
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+  "cores": 2,
+  "network": "local 30 km/h, every 10th line 50, every 50th line 80; 3% of segments removed; heuristic max speed 80 km/h",
+  "results": [
+    {
+      "side": 500,
+      "nodes": 250000,
+      "edges": 968234,
+      "graphBinMB": 17.5,
+      "routerArrayBuffersMB": 30,
+      "buildMs": 41,
+      "engineInitMs": 41,
+      "buckets": [
+        {
+          "targetKm": 2,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 2.8,
+          "ms": {
+            "p50": 2,
+            "p95": 6.5,
+            "max": 6.5
+          },
+          "expandedNodes": {
+            "p50": 392,
+            "p95": 679
+          },
+          "expandedShareOfGraphPct": 0.2
+        },
+        {
+          "targetKm": 10,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 14.2,
+          "ms": {
+            "p50": 2.8,
+            "p95": 6.1,
+            "max": 6.1
+          },
+          "expandedNodes": {
+            "p50": 6171,
+            "p95": 9743
+          },
+          "expandedShareOfGraphPct": 2.5
+        }
+      ]
+    },
+    {
+      "side": 1000,
+      "nodes": 1000000,
+      "edges": 3876514,
+      "graphBinMB": 70.1,
+      "routerArrayBuffersMB": 120.3,
+      "buildMs": 130,
+      "engineInitMs": 96,
+      "buckets": [
+        {
+          "targetKm": 2,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 2.9,
+          "ms": {
+            "p50": 0.7,
+            "p95": 1.7,
+            "max": 1.7
+          },
+          "expandedNodes": {
+            "p50": 522,
+            "p95": 696
+          },
+          "expandedShareOfGraphPct": 0.1
+        },
+        {
+          "targetKm": 10,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 14.2,
+          "ms": {
+            "p50": 4.1,
+            "p95": 8.2,
+            "max": 8.2
+          },
+          "expandedNodes": {
+            "p50": 7325,
+            "p95": 9157
+          },
+          "expandedShareOfGraphPct": 0.7
+        },
+        {
+          "targetKm": 30,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 38.7,
+          "ms": {
+            "p50": 24,
+            "p95": 49.5,
+            "max": 49.5
+          },
+          "expandedNodes": {
+            "p50": 51253,
+            "p95": 72317
+          },
+          "expandedShareOfGraphPct": 5.1
+        }
+      ]
+    },
+    {
+      "side": 2000,
+      "nodes": 4000000,
+      "edges": 15511084,
+      "graphBinMB": 280.7,
+      "routerArrayBuffersMB": 433.1,
+      "buildMs": 576,
+      "engineInitMs": 446,
+      "buckets": [
+        {
+          "targetKm": 2,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 2.8,
+          "ms": {
+            "p50": 2.7,
+            "p95": 4.4,
+            "max": 4.4
+          },
+          "expandedNodes": {
+            "p50": 476,
+            "p95": 819
+          },
+          "expandedShareOfGraphPct": 0
+        },
+        {
+          "targetKm": 10,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 14.2,
+          "ms": {
+            "p50": 5.2,
+            "p95": 17.4,
+            "max": 17.4
+          },
+          "expandedNodes": {
+            "p50": 5550,
+            "p95": 9912
+          },
+          "expandedShareOfGraphPct": 0.1
+        },
+        {
+          "targetKm": 30,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 39.7,
+          "ms": {
+            "p50": 27.7,
+            "p95": 36.7,
+            "max": 36.7
+          },
+          "expandedNodes": {
+            "p50": 52956,
+            "p95": 71247
+          },
+          "expandedShareOfGraphPct": 1.3
+        },
+        {
+          "targetKm": 80,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 104.3,
+          "ms": {
+            "p50": 224.2,
+            "p95": 335.2,
+            "max": 335.2
+          },
+          "expandedNodes": {
+            "p50": 321889,
+            "p95": 515917
+          },
+          "expandedShareOfGraphPct": 8
+        }
+      ]
+    },
+    {
+      "side": 3000,
+      "nodes": 9000000,
+      "edges": 34905254,
+      "graphBinMB": 631.6,
+      "routerArrayBuffersMB": 1082.8,
+      "buildMs": 1343,
+      "engineInitMs": 883,
+      "buckets": [
+        {
+          "targetKm": 2,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 2.9,
+          "ms": {
+            "p50": 2.6,
+            "p95": 6.3,
+            "max": 6.3
+          },
+          "expandedNodes": {
+            "p50": 511,
+            "p95": 733
+          },
+          "expandedShareOfGraphPct": 0
+        },
+        {
+          "targetKm": 10,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 14.2,
+          "ms": {
+            "p50": 7,
+            "p95": 14.9,
+            "max": 14.9
+          },
+          "expandedNodes": {
+            "p50": 8760,
+            "p95": 14472
+          },
+          "expandedShareOfGraphPct": 0.1
+        },
+        {
+          "targetKm": 30,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 42.5,
+          "ms": {
+            "p50": 51.3,
+            "p95": 78.9,
+            "max": 78.9
+          },
+          "expandedNodes": {
+            "p50": 63965,
+            "p95": 88196
+          },
+          "expandedShareOfGraphPct": 0.7
+        },
+        {
+          "targetKm": 80,
+          "queries": 12,
+          "noRoute": 0,
+          "routedKmMedian": 107.4,
+          "ms": {
+            "p50": 342,
+            "p95": 475.7,
+            "max": 475.7
+          },
+          "expandedNodes": {
+            "p50": 373161,
+            "p95": 523525
+          },
+          "expandedShareOfGraphPct": 4.1
+        }
+      ]
+    }
+  ]
+}

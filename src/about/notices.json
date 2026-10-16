@@ -1,0 +1,82 @@
+[
+  {
+    "name": "@babel/runtime",
+    "version": "7.29.10",
+    "license": "MIT"
+  },
+  {
+    "name": "html-parse-stringify",
+    "version": "4.0.1",
+    "license": "MIT"
+  },
+  {
+    "name": "i18next",
+    "version": "26.4.3",
+    "license": "MIT"
+  },
+  {
+    "name": "idb",
+    "version": "8.0.4",
+    "license": "ISC"
+  },
+  {
+    "name": "leaflet",
+    "version": "1.9.4",
+    "license": "BSD-2-Clause"
+  },
+  {
+    "name": "lucide-react",
+    "version": "1.55.0",
+    "license": "ISC"
+  },
+  {
+    "name": "react",
+    "version": "19.3.0",
+    "license": "MIT"
+  },
+  {
+    "name": "react-dom",
+    "version": "19.3.0",
+    "license": "MIT"
+  },
+  {
+    "name": "react-i18next",
+    "version": "17.0.16",
+    "license": "MIT"
+  },
+  {
+    "name": "scheduler",
+    "version": "0.28.0",
+    "license": "MIT"
+  },
+  {
+    "name": "use-sync-external-store",
+    "version": "1.7.0",
+    "license": "MIT"
+  },
+  {
+    "name": "workbox-core",
+    "version": "7.4.1",
+    "license": "MIT"
+  },
+  {
+    "name": "workbox-precaching",
+    "version": "7.4.1",
+    "license": "MIT"
+  },
+  {
+    "name": "workbox-routing",
+    "version": "7.4.1",
+    "license": "MIT"
+  },
+  {
+    "name": "workbox-strategies",
+    "version": "7.4.1",
+    "license": "MIT"
+  },
+  {
+    "name": "workbox-window",
+    "version": "7.4.1",
+    "license": "MIT"
+  }
+]

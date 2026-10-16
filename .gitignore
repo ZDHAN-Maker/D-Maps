@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dev-dist/
+playwright-report/
+test-results/
+pipeline/.venv/
+pipeline/*.egg-info/
+__pycache__/
+.pytest_cache/
+*.log

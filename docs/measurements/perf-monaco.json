@@ -1,0 +1,44 @@
+{
+  "note": "Node on a cloud VM; synthetic random node pairs; NOT a mobile or Indonesian measurement",
+  "node": "v22.22.0",
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.80GHz",
+  "cores": 2,
+  "dataset": {
+    "id": "monaco",
+    "dataVersion": "d122a47b61bc",
+    "nodes": 15335,
+    "edges": 26873,
+    "places": 961,
+    "forbiddenTurnPairs": 35,
+    "restrictedEdges": 27
+  },
+  "loadAndVerifyMs": 18.81,
+  "engineInitMs": 11.7,
+  "searchIndexBuildMs": 14.27,
+  "heapUsedDeltaMB": 1.28,
+  "arrayBuffersDeltaMB": 1.16,
+  "route": {
+    "queries": 300,
+    "routed": 269,
+    "noRoute": 31,
+    "routeKm": {
+      "median": 6.63,
+      "max": 18.3
+    },
+    "computeMs": {
+      "p50": 1.63,
+      "p95": 4.3,
+      "max": 14.45
+    },
+    "expandedNodes": {
+      "p50": 4777,
+      "p95": 12159
+    }
+  },
+  "search": {
+    "queries": 400,
+    "p50Ms": 0.01,
+    "p95Ms": 0.01,
+    "maxMs": 0.46
+  }
+}

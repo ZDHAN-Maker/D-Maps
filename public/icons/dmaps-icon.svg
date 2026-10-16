@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="D'Maps">
+  <title>D'Maps</title>
+  <rect width="512" height="512" rx="112" fill="#FFFDF7"/>
+  <!-- soft map blocks -->
+  <path d="M0 330 C90 300 150 360 250 335 C350 310 420 350 512 320 V512 H0 Z" fill="#B9F3D0"/>
+  <path d="M0 400 C110 380 190 430 290 410 C380 392 450 425 512 405 V512 H0 Z" fill="#8DD9F5"/>
+  <!-- road winding to the pin -->
+  <path d="M96 470 C170 400 120 360 230 330 C330 305 300 270 256 250" fill="none" stroke="#FFFDF7" stroke-width="30" stroke-linecap="round"/>
+  <path d="M96 470 C170 400 120 360 230 330 C330 305 300 270 256 250" fill="none" stroke="#FFE27A" stroke-width="16" stroke-linecap="round"/>
+  <path d="M96 470 C170 400 120 360 230 330 C330 305 300 270 256 250" fill="none" stroke="#FFFDF7" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 22"/>
+  <!-- map pin -->
+  <path d="M256 70 C190 70 142 118 142 182 C142 252 220 318 256 372 C292 318 370 252 370 182 C370 118 322 70 256 70 Z" fill="#FF9D91" stroke="#2B3A42" stroke-width="12" stroke-linejoin="round"/>
+  <circle cx="256" cy="182" r="52" fill="#FFFDF7" stroke="#2B3A42" stroke-width="12"/>
+  <!-- navigation arrow inside the pin -->
+  <path d="M256 150 L284 208 L256 194 L228 208 Z" fill="#2B3A42" stroke="#2B3A42" stroke-width="6" stroke-linejoin="round"/>
+</svg>

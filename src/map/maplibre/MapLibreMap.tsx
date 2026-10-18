@@ -183,11 +183,17 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     if (!source) return;
 
     const currentRegions = regionsRef.current;
-    const combinedFeatures: ReturnType<typeof featuresToGeoJson>['features'] = [];
+    let combinedFeatures: ReturnType<typeof featuresToGeoJson>['features'] = [];
     for (const r of currentRegions) {
       if (r.features) {
         const col = featuresToGeoJson(r.features);
-        combinedFeatures.push(...col.features);
+        if (combinedFeatures.length === 0) {
+          combinedFeatures = col.features;
+        } else {
+          for (let i = 0; i < col.features.length; i++) {
+            combinedFeatures.push(col.features[i]);
+          }
+        }
       }
     }
     source.setData({
@@ -199,18 +205,23 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     const key = currentRegions.map((r) => r.id).join(',');
     if (key && key !== fittedKey.current) {
       const b = currentRegions.map((r) => r.bbox);
-      const minLat = Math.min(...b.map((x) => x[0]));
-      const minLon = Math.min(...b.map((x) => x[1]));
-      const maxLat = Math.max(...b.map((x) => x[2]));
-      const maxLon = Math.max(...b.map((x) => x[3]));
-      map.fitBounds(
-        [
-          [minLon, minLat],
-          [maxLon, maxLat],
-        ],
-        { padding: 40, duration: 800 }
-      );
-      fittedKey.current = key;
+      if (b.length > 0) {
+        let minLat = b[0][0], minLon = b[0][1], maxLat = b[0][2], maxLon = b[0][3];
+        for (let i = 1; i < b.length; i++) {
+          if (b[i][0] < minLat) minLat = b[i][0];
+          if (b[i][1] < minLon) minLon = b[i][1];
+          if (b[i][2] > maxLat) maxLat = b[i][2];
+          if (b[i][3] > maxLon) maxLon = b[i][3];
+        }
+        map.fitBounds(
+          [
+            [minLon, minLat],
+            [maxLon, maxLat],
+          ],
+          { padding: 40, duration: 800 }
+        );
+        fittedKey.current = key;
+      }
     }
   }, []);
 
@@ -238,11 +249,18 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       });
 
       if (!navigating && coords.length >= 2) {
-        const lons = coords.map((c) => c[0]);
-        const lats = coords.map((c) => c[1]);
+        let minLon = coords[0][0], maxLon = coords[0][0];
+        let minLat = coords[0][1], maxLat = coords[0][1];
+        for (let i = 1; i < coords.length; i++) {
+          const [lon, lat] = coords[i];
+          if (lon < minLon) minLon = lon;
+          if (lon > maxLon) maxLon = lon;
+          if (lat < minLat) minLat = lat;
+          if (lat > maxLat) maxLat = lat;
+        }
         const bounds: LngLatBoundsLike = [
-          [Math.min(...lons), Math.min(...lats)],
-          [Math.max(...lons), Math.max(...lats)],
+          [minLon, minLat],
+          [maxLon, maxLat],
         ];
         map.fitBounds(bounds, { padding: 50, duration: 800 });
       }

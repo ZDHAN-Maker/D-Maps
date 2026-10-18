@@ -48,7 +48,9 @@ function ensureClosedRing(pts: [number, number][]): [number, number][] {
   const first = pts[0];
   const last = pts[pts.length - 1];
   if (first[0] !== last[0] || first[1] !== last[1]) {
-    return [...pts, [first[0], first[1]]];
+    const copy = pts.slice();
+    copy.push([first[0], first[1]]);
+    return copy;
   }
   return pts;
 }

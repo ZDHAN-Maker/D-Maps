@@ -38,8 +38,18 @@ describe('settings', () => {
 
   it('ignores invalid values instead of storing them', () => {
     const s = new SettingsStore(new MemStorage());
-    s.set({ theme: 'neon' as never });
+    s.set({ theme: 'neon' as never, mapEngine: 'google' as never });
     expect(s.get().theme).toBe('system');
+    expect(s.get().mapEngine).toBe('maplibre');
+  });
+
+  it('supports configuring mapEngine to leaflet or maplibre', () => {
+    const s = new SettingsStore(new MemStorage());
+    expect(s.get().mapEngine).toBe('maplibre');
+    s.set({ mapEngine: 'leaflet' });
+    expect(s.get().mapEngine).toBe('leaflet');
+    s.set({ mapEngine: 'maplibre' });
+    expect(s.get().mapEngine).toBe('maplibre');
   });
 
   it('keeps working in memory when storage throws (blocked storage / private mode)', () => {

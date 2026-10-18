@@ -1,9 +1,11 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 export type ThemePref = 'system' | 'light' | 'dark';
+export type MapEngine = 'maplibre' | 'leaflet';
 
 export interface Settings {
   theme: ThemePref;
+  mapEngine: MapEngine;
   /** keep the screen on while navigating (phones throttle GPS when the screen sleeps) */
   keepAwake: boolean;
   /** start navigation with the map following the vehicle */
@@ -12,7 +14,7 @@ export interface Settings {
   highAccuracy: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { theme: 'system', keepAwake: true, followOnStart: true, highAccuracy: true };
+export const DEFAULT_SETTINGS: Settings = { theme: 'system', mapEngine: 'maplibre', keepAwake: true, followOnStart: true, highAccuracy: true };
 export const SETTINGS_KEY = 'dmaps.settings';
 
 type Json = Record<string, unknown>;
@@ -25,6 +27,7 @@ export function parseSettings(raw: string | null): Settings {
   const d = DEFAULT_SETTINGS;
   return {
     theme: o.theme === 'light' || o.theme === 'dark' || o.theme === 'system' ? o.theme : d.theme,
+    mapEngine: o.mapEngine === 'leaflet' || o.mapEngine === 'maplibre' ? o.mapEngine : d.mapEngine,
     keepAwake: typeof o.keepAwake === 'boolean' ? o.keepAwake : d.keepAwake,
     followOnStart: typeof o.followOnStart === 'boolean' ? o.followOnStart : d.followOnStart,
     highAccuracy: typeof o.highAccuracy === 'boolean' ? o.highAccuracy : d.highAccuracy,

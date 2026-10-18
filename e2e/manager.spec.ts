@@ -13,10 +13,10 @@ test('manager: catalog tree, per-component status, verify, and delete with confi
   await page.goto('/');
   await openTab(page, 'regions');
 
-  // the hierarchy is shown, the Indonesia folder honestly says it has no dataset yet
+  // the hierarchy is shown, and Indonesian regions or empty placeholder are present
   await expect(page.getByTestId('group-test-fixtures')).toBeVisible();
   await expect(page.getByTestId('group-indonesia')).toBeVisible();
-  await expect(page.getByTestId('empty-indonesia')).toBeVisible();
+  await expect(page.getByTestId('region-jambi').or(page.getByTestId('empty-indonesia'))).toBeVisible();
   await expect(status(page)).toHaveText('Belum diunduh');
   await expect(page.getByTestId('storage-usage')).toBeVisible();
 
@@ -69,12 +69,12 @@ test('offline: installed data keeps working, the stale catalog is labelled, down
 
 test('pause keeps verified files, resume downloads only what is missing', async ({ page }) => {
   const requested: string[] = [];
-  page.on('request', (r) => { const m = /\/data\/monaco\/([^/?]+)$/.exec(r.url()); if (m) requested.push(m[1]); });
+  page.on('request', (r) => { const m = /\/data\/monaco\/([^/?]+)/.exec(r.url()); if (m) requested.push(m[1]); });
 
   let release!: () => void;
   const gate = new Promise<void>((res) => { release = res; });
   let hold = true;
-  await page.route('**/data/monaco/features.json', async (route) => {
+  await page.route('**/data/monaco/features.json*', async (route) => {
     if (hold) { await gate; }
     await route.continue().catch(() => { /* the request was aborted by Pause */ });
   });

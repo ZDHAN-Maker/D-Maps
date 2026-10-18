@@ -1,6 +1,10 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { Map, Marker, type GeoJSONSource, type LngLatBoundsLike } from 'maplibre-gl';
+import { Map, Marker, setWorkerUrl, type GeoJSONSource, type LngLatBoundsLike } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+
+// Configure MapLibre Web Worker URL for Vite bundling and dev server
+setWorkerUrl(maplibreWorkerUrl);
 import { Compass, Box } from 'lucide-react';
 import { createMapLibreStyle } from './style';
 import { featuresToGeoJson } from './featuresToGeojson';
@@ -192,7 +196,8 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     if (map.isStyleLoaded()) {
       updateSource();
     } else {
-      map.once('style.load', updateSource);
+      map.once('load', updateSource);
+      map.once('styledata', updateSource);
     }
   }, [regions]);
 
@@ -238,7 +243,8 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     if (map.isStyleLoaded()) {
       updateRoute();
     } else {
-      map.once('style.load', updateRoute);
+      map.once('load', updateRoute);
+      map.once('styledata', updateRoute);
     }
   }, [shownRoute, navigating]);
 

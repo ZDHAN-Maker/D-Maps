@@ -34,3 +34,4 @@ export const PALETTES: Record<'light' | 'dark', Palette> = {
     buildingStroke: '#3A474E',
   },
 };
+

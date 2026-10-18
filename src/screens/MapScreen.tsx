@@ -54,7 +54,8 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
   const hasData = !regionSet.isEmpty;
   const theme = useEffectiveTheme();
   const [settings] = useSettings();
-  const isMapLibre = settings.mapEngine === 'maplibre';
+  const [maplibreFailed, setMaplibreFailed] = useState(false);
+  const isMapLibre = settings.mapEngine === 'maplibre' && !maplibreFailed;
   const maplibreRef = useRef<MapLibreMapHandle | null>(null);
 
   const mapEl = useRef<HTMLDivElement>(null);
@@ -517,6 +518,7 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
                 setCenter(c);
               }
             }}
+            onError={() => setMaplibreFailed(true)}
           />
         )}
       </div>

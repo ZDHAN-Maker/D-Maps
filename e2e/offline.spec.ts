@@ -94,7 +94,7 @@ test('without data: features are disabled and the UI says so', async ({ page, co
 });
 
 test('a failed download is reported, offers retry, and leaves search disabled', async ({ page }) => {
-  await page.route('**/data/monaco/graph.bin', (route) => route.abort('failed'));
+  await page.route('**/data/monaco/graph.bin*', (route) => route.abort('failed'));
   await page.goto('/');
   await openTab(page, 'regions');
   await page.getByTestId('dl-monaco').click();
@@ -105,7 +105,7 @@ test('a failed download is reported, offers retry, and leaves search disabled', 
 });
 
 test('a corrupt download is rejected by the checksum', async ({ page }) => {
-  await page.route('**/data/monaco/graph.bin', async (route) => {
+  await page.route('**/data/monaco/graph.bin*', async (route) => {
     const res = await route.fetch();
     const body = await res.body();
     const bad = Buffer.from(body);

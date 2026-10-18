@@ -99,7 +99,18 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     map.attributionControl.addAttribution('© OpenStreetMap contributors (ODbL)');
     rendererRef.current = L.canvas({ padding: 0.4 });
     overlayRef.current = L.layerGroup().addTo(map);
-    map.on('moveend', () => { const c = map.getCenter(); setCenter({ lat: c.lat, lon: c.lng }); });
+
+    const updateFeatures = () => {
+      const z = map.getZoom();
+      const b = map.getBounds();
+      for (const f of featureRef.current) f.update(z, b);
+    };
+
+    map.on('moveend', () => {
+      const c = map.getCenter();
+      setCenter({ lat: c.lat, lon: c.lng });
+      updateFeatures();
+    });
     map.on('dragstart', () => setFollow(false)); // only a user drag; programmatic setView does not fire it
     map.on('zoomend', () => {
       const show = map.getZoom() >= BUILDING_MIN_ZOOM;
@@ -107,14 +118,29 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
         if (show && !map.hasLayer(f.buildings)) f.buildings.addTo(map);
         if (!show && map.hasLayer(f.buildings)) map.removeLayer(f.buildings);
       }
+      updateFeatures();
     });
+
+    let moveTimer: ReturnType<typeof setTimeout> | null = null;
+    map.on('move', () => {
+      if (moveTimer) return;
+      moveTimer = setTimeout(() => {
+        moveTimer = null;
+        updateFeatures();
+      }, 150);
+    });
+
     map.on('click', (e: L.LeafletMouseEvent) => {
       if (!hasDataRef.current) return;
       const label = `${t('route.mapPoint')} (${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)})`;
       setPoint(pickRef.current, { lat: e.latlng.lat, lon: e.latlng.lng, label });
     });
     mapRef.current = map;
-    return () => { map.remove(); mapRef.current = null; };
+    return () => {
+      if (moveTimer) clearTimeout(moveTimer);
+      map.remove();
+      mapRef.current = null;
+    };
   }, []);
 
   useEffect(() => { if (active) { const id = setTimeout(() => mapRef.current?.invalidateSize(), 50); return () => clearTimeout(id); } }, [active]);
@@ -123,12 +149,17 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !rendererRef.current) return;
-    for (const f of featureRef.current) { map.removeLayer(f.base); map.removeLayer(f.buildings); }
+    for (const f of featureRef.current) {
+      f.destroy();
+      map.removeLayer(f.base);
+      map.removeLayer(f.buildings);
+    }
     featureRef.current = [];
     for (const r of regionSet.regions) {
       const layers = buildFeatureLayers(r.features, rendererRef.current, PALETTES[theme]);
       layers.base.addTo(map);
       if (map.getZoom() >= BUILDING_MIN_ZOOM) layers.buildings.addTo(map);
+      layers.update(map.getZoom(), map.getBounds());
       featureRef.current.push(layers);
     }
     const key = regionSet.regions.map((r) => r.id).join(',');

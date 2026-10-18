@@ -62,6 +62,14 @@ export async function canvasInkPixels(page: Page): Promise<number> {
       const d = ctx.getImageData(0, 0, c.width, c.height).data;
       for (let i = 3; i < d.length; i += 4) if (d[i] > 0) ink++;
     }
+    for (const c of Array.from(document.querySelectorAll<HTMLCanvasElement>('.maplibregl-canvas'))) {
+      const gl = c.getContext('webgl2') || c.getContext('webgl');
+      if (gl) {
+        const pixels = new Uint8Array(c.width * c.height * 4);
+        (gl as WebGLRenderingContext).readPixels(0, 0, c.width, c.height, (gl as WebGLRenderingContext).RGBA, (gl as WebGLRenderingContext).UNSIGNED_BYTE, pixels);
+        for (let i = 3; i < pixels.length; i += 4) if (pixels[i] > 0) ink++;
+      }
+    }
     return ink;
   });
 }

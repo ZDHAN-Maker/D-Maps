@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Database, Languages, Lock, MapPinned, Moon, Trash2 } from 'lucide-react';
+import { Database, Languages, Layers, Lock, MapPinned, Moon, Trash2 } from 'lucide-react';
 import { saveLanguage } from '../i18n';
-import { useSettings, type ThemePref } from '../settings/store';
+import { useSettings, type ThemePref, type MapEngine } from '../settings/store';
 import { clearHistory } from '../search/history';
 import { useRegions } from '../regions/RegionsContext';
 import type { Lang } from '../routing/describe';
 import type { Tab } from '../App';
 
 const THEMES: ThemePref[] = ['system', 'light', 'dark'];
+const ENGINES: MapEngine[] = ['maplibre', 'leaflet'];
 
 export default function SettingsScreen({ goTo }: { goTo(tab: Tab): void }) {
   const { t, i18n } = useTranslation();
@@ -30,6 +31,17 @@ export default function SettingsScreen({ goTo }: { goTo(tab: Tab): void }) {
           {(['id', 'en'] as const).map((l) => (
             <button key={l} type="button" role="radio" aria-checked={lang === l} className="chip" data-testid={`lang-${l}`} onClick={() => setLang(l)}>
               {l === 'id' ? 'Bahasa Indonesia' : 'English'}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="card" aria-labelledby="set-engine">
+        <h3 id="set-engine"><Layers size={18} aria-hidden /> {t('settings.mapEngine')}</h3>
+        <div className="seg" role="radiogroup" aria-labelledby="set-engine">
+          {ENGINES.map((eng) => (
+            <button key={eng} type="button" role="radio" aria-checked={s.mapEngine === eng} className="chip" data-testid={`engine-${eng}`} onClick={() => set({ mapEngine: eng })}>
+              {t(`settings.mapEngines.${eng}`)}
             </button>
           ))}
         </div>

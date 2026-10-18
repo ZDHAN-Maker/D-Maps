@@ -6,7 +6,7 @@
  */
 import { cpus } from 'node:os';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { resolve, join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { it } from 'vitest';
 import { RoutingEngine, haversineM, latOf, lonOf } from '../../src/routing';
@@ -28,9 +28,10 @@ const pct = (xs: number[], p: number) => {
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 it('measures load, search and route timings', () => {
+  const targetDir = process.env.DATASET_DIR ? resolve(process.env.DATASET_DIR) : MONACO_DIR;
   const heap0 = process.memoryUsage();
   let t = performance.now();
-  const ds = loadDataset(MONACO_DIR); // includes SHA-256 verification of all files + graph parse
+  const ds = loadDataset(targetDir); // includes SHA-256 verification of all files + graph parse
   const loadMs = performance.now() - t;
 
   t = performance.now();
@@ -48,7 +49,8 @@ it('measures load, search and route timings', () => {
   const connected: number[] = [];
   for (let i = 0; i < g.nodeCount; i++) if (g.first[i + 1] > g.first[i]) connected.push(i);
   const rows: { km: number; ms: number; expanded: number; ok: boolean }[] = [];
-  for (let k = 0; k < 300; k++) {
+  const queryCount = Math.min(300, Math.max(50, g.nodeCount > 500000 ? 50 : 300));
+  for (let k = 0; k < queryCount; k++) {
     const a = connected[Math.floor(rnd() * connected.length)];
     const b = connected[Math.floor(rnd() * connected.length)];
     const from = { lat: latOf(g, a), lon: lonOf(g, a) };
@@ -60,18 +62,22 @@ it('measures load, search and route timings', () => {
   }
   const okRows = rows.filter((r) => r.ok);
 
-  const queries = ['casino', 'pharmacie', 'bd des moulins', 'rs', 'hotel', 'monte', 'jalan', 'zzzz'];
+  const center = {
+    lat: (ds.manifest.bbox[0] + ds.manifest.bbox[2]) / 2,
+    lon: (ds.manifest.bbox[1] + ds.manifest.bbox[3]) / 2,
+  };
+  const queries = ['rs', 'rumah sakit', 'hotel', 'jalan', 'pasar', 'masjid', 'spbu', 'pertamina', 'bank', 'atm'];
   const searchMs: number[] = [];
-  for (let rep = 0; rep < 50; rep++) {
+  for (let rep = 0; rep < 20; rep++) {
     for (const q of queries) {
       const s = performance.now();
-      index.search(q, { near: { lat: 43.7384, lon: 7.4246 }, limit: 20 });
+      index.search(q, { near: center, limit: 20 });
       searchMs.push(performance.now() - s);
     }
   }
 
   const report = {
-    note: 'Node on a cloud VM; synthetic random node pairs; NOT a mobile or Indonesian measurement',
+    note: `Measured on ${process.env.DATASET_DIR ? ds.manifest.id : 'monaco'}; random connected node pairs`,
     node: process.version, cpu: cpus()[0]?.model, cores: cpus().length,
     dataset: { id: ds.manifest.id, dataVersion: ds.manifest.dataVersion, nodes: g.nodeCount, edges: g.edgeCount, places: ds.places.length, forbiddenTurnPairs: ds.turns?.size ?? 0, restrictedEdges: ds.turns?.restrictedCount ?? 0 },
     loadAndVerifyMs: r2(loadMs), engineInitMs: r2(engineInitMs), searchIndexBuildMs: r2(indexBuildMs),
@@ -87,6 +93,7 @@ it('measures load, search and route timings', () => {
   };
   const out = join(import.meta.dirname, '..', '..', 'docs', 'measurements');
   mkdirSync(out, { recursive: true });
-  writeFileSync(join(out, 'perf-monaco.json'), JSON.stringify(report, null, 2) + '\n');
+  const outFileName = ds.manifest.id === 'monaco' ? 'perf-monaco.json' : `perf-${ds.manifest.id}.json`;
+  writeFileSync(join(out, outFileName), JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));
 });

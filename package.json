@@ -14,9 +14,10 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "data:monaco": "cd pipeline && .venv/bin/python -I -m dmaps_pipeline.build_dataset --pbf ../data/fixtures/monaco/monaco.osm.pbf --id monaco --name 'Monaco (test fixture)' --source-note 'OSRM test fixture; engineering validation only, not Indonesian data' --out ../public/data/monaco",
+    "data:jambi": "node scripts/run_pipeline.mjs --id jambi",
     "perf": "vitest run --config vitest.perf.config.ts measure",
-    "measure:data": "python3 -I scripts/measure_dataset.py",
-    "data:catalog": "cd pipeline && .venv/bin/python -I -m dmaps_pipeline.catalog --data ../public/data --regions ../data/regions.json",
+    "measure:data": "node scripts/run_pipeline.mjs scripts/measure_dataset.py",
+    "data:catalog": "node scripts/run_pipeline.mjs scripts/build_region.py --catalog-only",
     "notices": "node scripts/gen_notices.mjs",
     "perf:scale": "NODE_OPTIONS=--max-old-space-size=6144 vitest run --config vitest.perf.config.ts scale"
   },

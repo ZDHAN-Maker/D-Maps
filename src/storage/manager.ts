@@ -67,6 +67,7 @@ export interface JobSnapshot {
   bytesTotal: number;
   file?: string;
   error?: JobError;
+  errorMessage?: string;
 }
 
 const isAbort = (e: unknown) => e instanceof DOMException && e.name === 'AbortError';
@@ -109,16 +110,18 @@ export class InstallJob {
     if (this.snap.state === 'running') return this.settled;
     this.wantPause = false;
     this.ctrl = new AbortController();
-    this.set({ state: 'running', error: undefined });
+    this.set({ state: 'running', error: undefined, errorMessage: undefined });
     this.running = installDataset({
       ...this.opts,
       signal: this.ctrl.signal,
       onProgress: (p) => this.set({ bytesDone: p.bytesDone, bytesTotal: p.bytesTotal, file: p.file }),
     }).then(
-      () => this.set({ state: 'done', file: undefined }),
+      () => this.set({ state: 'done', file: undefined, errorMessage: undefined }),
       (err) => {
         if (isAbort(err)) { this.set({ state: this.wantPause ? 'paused' : 'cancelled' }); return; }
-        this.set({ state: 'failed', error: jobErrorOf(err) });
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error(`[InstallJob ${this.id}] failed:`, err);
+        this.set({ state: 'failed', error: jobErrorOf(err), errorMessage: msg });
       },
     );
     return this.running;

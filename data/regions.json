@@ -5,17 +5,38 @@
       "id": "indonesia",
       "parent": null,
       "name": "Indonesia",
-      "names": { "id": "Indonesia", "en": "Indonesia" }
+      "names": {
+        "id": "Indonesia",
+        "en": "Indonesia"
+      }
     },
     {
       "id": "test-fixtures",
       "parent": null,
       "name": "Dataset uji teknis (bukan data Indonesia)",
-      "names": { "id": "Dataset uji teknis (bukan data Indonesia)", "en": "Engineering test data (not Indonesia)" },
+      "names": {
+        "id": "Dataset uji teknis (bukan data Indonesia)",
+        "en": "Engineering test data (not Indonesia)"
+      },
       "testFixture": true
+    },
+    {
+      "id": "sumatra",
+      "parent": "indonesia",
+      "name": "Sumatra",
+      "names": {
+        "id": "Sumatra",
+        "en": "Sumatra"
+      }
     }
   ],
   "datasets": {
-    "monaco": { "parent": "test-fixtures", "testFixture": true }
+    "monaco": {
+      "parent": "test-fixtures",
+      "testFixture": true
+    },
+    "jambi": {
+      "parent": "sumatra"
+    }
   }
 }

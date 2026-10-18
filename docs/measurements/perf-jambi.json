@@ -1,0 +1,44 @@
+{
+  "note": "Measured on jambi; random connected node pairs",
+  "node": "v22.18.0",
+  "cpu": "AMD Ryzen 5 5600 6-Core Processor              ",
+  "cores": 12,
+  "dataset": {
+    "id": "jambi",
+    "dataVersion": "c83195ab149d",
+    "nodes": 663057,
+    "edges": 1360923,
+    "places": 6979,
+    "forbiddenTurnPairs": 13,
+    "restrictedEdges": 12
+  },
+  "loadAndVerifyMs": 85.27,
+  "engineInitMs": 65.09,
+  "searchIndexBuildMs": 20.61,
+  "heapUsedDeltaMB": 6.53,
+  "arrayBuffersDeltaMB": 59.89,
+  "route": {
+    "queries": 50,
+    "routed": 46,
+    "noRoute": 4,
+    "routeKm": {
+      "median": 164.17,
+      "max": 535.96
+    },
+    "computeMs": {
+      "p50": 42.45,
+      "p95": 143.15,
+      "max": 168.03
+    },
+    "expandedNodes": {
+      "p50": 164601,
+      "p95": 501042
+    }
+  },
+  "search": {
+    "queries": 200,
+    "p50Ms": 0.04,
+    "p95Ms": 0.84,
+    "maxMs": 2.08
+  }
+}

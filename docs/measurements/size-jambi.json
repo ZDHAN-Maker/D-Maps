@@ -1,0 +1,62 @@
+{
+  "id": "jambi",
+  "dataVersion": "c83195ab149d",
+  "nodes": 663057,
+  "edges": 1360923,
+  "places": 6979,
+  "files": [
+    {
+      "name": "graph.bin",
+      "component": "routing graph",
+      "raw": 28370568,
+      "gzip": 10149927
+    },
+    {
+      "name": "ways.json",
+      "component": "routing graph",
+      "raw": 852765,
+      "gzip": 21050
+    },
+    {
+      "name": "places.json",
+      "component": "place search",
+      "raw": 623077,
+      "gzip": 126369
+    },
+    {
+      "name": "features.json",
+      "component": "map rendering",
+      "raw": 31589100,
+      "gzip": 11540322
+    },
+    {
+      "name": "turns.bin",
+      "component": "routing graph",
+      "raw": 120,
+      "gzip": 128
+    }
+  ],
+  "components": {
+    "routing graph": {
+      "raw": 29223453,
+      "gzip": 10171105
+    },
+    "place search": {
+      "raw": 623077,
+      "gzip": 126369
+    },
+    "map rendering": {
+      "raw": 31589100,
+      "gzip": 11540322
+    }
+  },
+  "total": {
+    "raw": 61435630,
+    "gzip": 21837796
+  },
+  "ratios": {
+    "graph_bin_bytes_per_edge": 20.85,
+    "places_json_bytes_per_place": 89.3
+  },
+  "router_memory_formula_bytes": 53042874
+}

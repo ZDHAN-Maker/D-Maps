@@ -108,11 +108,15 @@ async function readStream(res: Response, expected: number, name: string, onChunk
     if (done) break;
     if (total + value.byteLength > expected) {
       void reader.cancel().catch(() => undefined);
+      console.error(`[readStream overflow] ${name}: expected ${expected} bytes, but got ${total} + ${value.byteLength} bytes`);
       throw new IntegrityError(name, `${name}: expected ${expected} bytes, received more`);
     }
     out.set(value, total);
     total += value.byteLength;
     onChunk(value.byteLength);
+  }
+  if (total !== expected) {
+    console.error(`[readStream short read] ${name}: expected ${expected} bytes, but read stopped at ${total} bytes`);
   }
   return total === expected ? out.buffer : out.buffer.slice(0, total);
 }
@@ -164,7 +168,11 @@ export async function installDataset(opts: InstallOptions): Promise<DatasetRecor
       if (opts.signal?.aborted) throw new DOMException('aborted', 'AbortError');
       // announce the file before its first byte arrives, so the UI never names the previous file
       opts.onProgress?.({ datasetId: id, file: f.name, fileIndex, fileCount: manifest.files.length, bytesDone, bytesTotal: totalBytes });
-      const res = await doFetch(join(opts.baseUrl, f.name), { signal: opts.signal });
+      // Append a query param so browser extensions (like IDM - Internet Download Manager)
+      // do not hijack .bin file fetches and return HTTP 204 No Content with 0 bytes.
+      const fileUrl = join(opts.baseUrl, f.name);
+      const reqUrl = fileUrl.includes('?') ? `${fileUrl}&dmaps=1` : `${fileUrl}?dmaps=1`;
+      const res = await doFetch(reqUrl, { signal: opts.signal, cache: 'no-store' });
       if (!res.ok) throw new DownloadError(f.name, `HTTP ${res.status} for ${f.name}`);
       const before = bytesDone;
       const data = await readStream(res, f.bytes, f.name, (n) => {
@@ -172,9 +180,15 @@ export async function installDataset(opts: InstallOptions): Promise<DatasetRecor
         opts.onProgress?.({ datasetId: id, file: f.name, fileIndex, fileCount: manifest.files.length, bytesDone, bytesTotal: totalBytes });
       }, opts.signal);
       bytesDone = before + f.bytes;
-      if (data.byteLength !== f.bytes) throw new IntegrityError(f.name, `${f.name}: expected ${f.bytes} bytes, received ${data.byteLength}`);
+      if (data.byteLength !== f.bytes) {
+        console.error(`[IntegrityError] ${f.name} size mismatch: expected ${f.bytes} bytes, received ${data.byteLength} bytes`);
+        throw new IntegrityError(f.name, `${f.name}: expected ${f.bytes} bytes, received ${data.byteLength}`);
+      }
       const sha = await sha256Hex(data);
-      if (sha !== f.sha256) throw new IntegrityError(f.name, `${f.name}: checksum mismatch — file is corrupt or was tampered with`);
+      if (sha !== f.sha256) {
+        console.error(`[IntegrityError] ${f.name} checksum mismatch: expected ${f.sha256}, got ${sha}`);
+        throw new IntegrityError(f.name, `${f.name}: checksum mismatch — file is corrupt or was tampered with`);
+      }
       const rec: BlobRecord = { key: blobKey(id, sha), data, bytes: data.byteLength };
       await db.put('blobs', rec);
       pending.filesDone.push(f.sha256);

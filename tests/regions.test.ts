@@ -24,11 +24,10 @@ describe('catalog', () => {
     }
   });
 
-  it('keeps an empty Indonesia group so the UI can say nothing is available yet', () => {
+  it('builds region tree with fixtures and regional datasets', () => {
     const roots = buildTree(validateCatalog(catalog).regions);
     const indonesia = roots.find((n) => n.region.id === 'indonesia');
-    expect(indonesia?.children).toEqual([]);
-    expect(datasetsUnder(indonesia!)).toEqual([]);
+    expect(indonesia).toBeDefined();
     const fixtures = roots.find((n) => n.region.id === 'test-fixtures');
     expect(datasetsUnder(fixtures!).map((d) => d.id)).toEqual(['monaco']);
   });
@@ -37,10 +36,10 @@ describe('catalog', () => {
   it.each([
     ['wrong format', (c: CatalogFile) => { (c as { formatVersion: number }).formatVersion = 2; }, /unsupported catalog format/],
     ['duplicate id', (c: CatalogFile) => { c.regions.push({ ...c.regions[0] }); }, /duplicate region id/],
-    ['unknown parent', (c: CatalogFile) => { c.regions[2].parent = 'nowhere'; }, /unknown parent/],
-    ['path-traversal file name', (c: CatalogFile) => { const d = c.regions[2]; if (d.kind === 'dataset') d.files[0].name = '../evil'; }, /invalid file entry/],
-    ['bytes mismatch', (c: CatalogFile) => { const d = c.regions[2]; if (d.kind === 'dataset') d.bytes += 1; }, /does not equal the sum/],
-    ['bad dataVersion', (c: CatalogFile) => { const d = c.regions[2]; if (d.kind === 'dataset') d.dataVersion = 'xyz'; }, /invalid dataVersion/],
+    ['unknown parent', (c: CatalogFile) => { const r = c.regions.find((x) => x.parent != null); if (r) r.parent = 'nowhere'; }, /unknown parent/],
+    ['path-traversal file name', (c: CatalogFile) => { const d = c.regions.find((x) => x.kind === 'dataset'); if (d?.kind === 'dataset') d.files[0].name = '../evil'; }, /invalid file entry/],
+    ['bytes mismatch', (c: CatalogFile) => { const d = c.regions.find((x) => x.kind === 'dataset'); if (d?.kind === 'dataset') d.bytes += 1; }, /does not equal the sum/],
+    ['bad dataVersion', (c: CatalogFile) => { const d = c.regions.find((x) => x.kind === 'dataset'); if (d?.kind === 'dataset') d.dataVersion = 'xyz'; }, /invalid dataVersion/],
   ])('rejects %s', (_n, fn, re) => {
     expect(() => validateCatalog(mutate(fn))).toThrow(CatalogError);
     expect(() => validateCatalog(mutate(fn))).toThrow(re);
@@ -62,7 +61,7 @@ describe('catalog', () => {
   it('localises names with a fallback and builds download URLs', () => {
     expect(displayName({ name: 'Uji', names: { en: 'Test' } }, 'en')).toBe('Test');
     expect(displayName({ name: 'Uji', names: { en: 'Test' } }, 'id')).toBe('Uji');
-    const d = catalog.regions.find((r) => r.kind === 'dataset');
+    const d = catalog.regions.find((r) => r.id === 'monaco');
     if (d?.kind !== 'dataset') throw new Error('no dataset');
     expect(datasetBaseUrl(d, '/data/')).toBe('/data/monaco');
     expect(datasetBaseUrl({ ...d, baseUrl: '/cdn/m' }, '/data')).toBe('/cdn/m');

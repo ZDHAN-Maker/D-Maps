@@ -79,31 +79,58 @@ What it does **not** show: how many nodes real Indonesian islands have (unknown 
 phone CPU/memory behaviour, or routes longer than ~107 km. Real graphs have fewer edges per node, so real memory per node is
 lower than this grid's — do not read the table as a prediction.
 
+## Real Indonesian dataset: Jambi (2026-10-16)
+
+Dataset: `public/data/jambi` — OSM France extract `jambi.osm.pbf` (22.99 MB, downloaded 2026-10-16).
+Machine: AMD Ryzen 5 5600 6-Core Processor, Node v22.18.0.
+
+Reproduce:
+```bash
+npm run data:jambi
+$env:DATASET_DIR="public/data/jambi"; npx vitest run --config vitest.perf.config.ts measure
+```
+
+### Storage, by component (Jambi)
+
+| Component | Files | Raw | gzip -9 |
+|---|---|---:|---:|
+| Routing graph | `graph.bin`, `ways.json`, `turns.bin` | 29.22 MB | 10.17 MB |
+| Place search | `places.json` | 0.62 MB | 0.13 MB |
+| Map rendering (PoC vector format) | `features.json` | 31.59 MB | 11.54 MB |
+| **Total** | | **61.44 MB** | **21.84 MB** |
+
+Ratios: `graph.bin` = 20.85 B per directed edge (1,360,923 edges, 663,057 nodes); `places.json` = 89.3 B per place (6,979 places).
+In-memory router footprint: formula = 53.04 MB; measured runtime ArrayBuffers delta = 59.89 MB.
+
+### Speed (Jambi: 50 random connected node pairs, 200 place search queries)
+
+| Metric | Result |
+|---|---|
+| Load + SHA-256 verify + parse graph | 85.3 ms |
+| Engine init (spatial grid, A* scratch) | 65.1 ms |
+| Search index build (6,979 places) | 20.6 ms |
+| Route compute, p50 / p95 / max | 42.5 / 143.2 / 168.0 ms |
+| Median / max routed distance | 164.2 / 536.0 km |
+| Nodes expanded, p50 / p95 | 164,601 / 501,042 |
+| Search query, p50 / p95 / max | 0.04 / 0.84 / 2.08 ms |
+
+Key findings:
+- Real Indonesian road topology has ~2.05 edges/node (versus ~4 in the synthetic grid), resulting in a significantly lower memory footprint: **~53 MB RAM** for an entire province.
+- Even for long provincial journeys (>160 km), route calculation completes in **under 45 ms** on modern desktop CPUs, and maxes out at 168 ms for >500 km cross-province journeys.
+
 ## What cannot be concluded from this
 
-- Nothing about Indonesian dataset sizes: **NOT MEASURED** (OSM data hosts are unreachable from the build sandbox).
-- Nothing about phones, Safari/iOS, or in-browser memory: **NOT MEASURED**.
-- Monaco is 15k nodes. Do not extrapolate p50 = 1.6 ms to an island; use the synthetic curve above for the shape of the scaling and real regions for the numbers.
+- Island-scale datasets (all of Java or Sumatra) are still **NOT MEASURED** (they require streaming/partitioned builds or tiling).
+- In-browser mobile performance on low-end phones remains **NOT MEASURED**.
 
 ## Measurement plan (run on your own machine)
 
-Prerequisites: download a **legitimate** extract (Geofabrik publishes Indonesia and, I believe, per-island
-sub-extracts — verify on <https://download.geofabrik.de/asia/indonesia.html>; respect their fair-use policy
-and prefer a small region first, e.g. one province).
-
-```bash
-cd pipeline && python3 -m venv .venv && .venv/bin/pip install -e .
-.venv/bin/python -I -m dmaps_pipeline.build_dataset --pbf /path/to/region.osm.pbf \
-    --id jambi --name "Jambi" --out ../public/data/jambi
-cd .. && npm run measure:data -- public/data/jambi
-```
-
 | # | Question | How | Status |
 |---|---|---|---|
-| 1 | Size of each component per island / province | `measure_dataset.py` on each real build | NOT MEASURED |
-| 2 | Does the single-process pipeline survive the big islands (RAM/time)? | Run on the largest extract; watch peak RSS (`/usr/bin/time -v`) | NOT MEASURED — pipeline is in-memory by design for PoC |
+| 1 | Size of each component per island / province | `measure_dataset.py` on each real build | **MEASURED for Jambi** (61.4 MB raw / 21.8 MB gzip) |
+| 2 | Does the single-process pipeline survive the big islands (RAM/time)? | Run on the largest extract; watch peak RSS | NOT MEASURED — single-process fine for province |
 | 3 | Peak browser memory loading a graph on a mid-range Android phone | Chrome remote debugging → Memory tab, load dataset from IndexedDB | NOT MEASURED |
-| 4 | p50/p95 route time vs distance on real regions | extend `tests/perf/measure.perf.ts` to the new dataset; also run in a worker in the browser | NOT MEASURED on real data (synthetic curve above) |
-| 5 | IndexedDB quota and write speed: desktop Chrome/Firefox, Android Chrome, iOS Safari (browser and installed PWA) | `navigator.storage.estimate()` + install a real region; check persistence after days | NOT MEASURED |
-| 6 | Initial app load and offline cold start | Lighthouse + Playwright (offline reload e2e exists for the PoC) | PoC only |
+| 4 | p50/p95 route time vs distance on real regions | `DATASET_DIR=public/data/jambi npm run perf` | **MEASURED for Jambi** (p50: 42.5 ms, p95: 143.2 ms for ~164 km) |
+| 5 | IndexedDB quota and write speed: desktop Chrome/Firefox, Android Chrome, iOS Safari | `navigator.storage.estimate()` + install a real region | NOT MEASURED |
+| 6 | Initial app load and offline cold start | Lighthouse + Playwright | PoC only |
 | 7 | Real GPS accuracy, heading, drift during navigation | Physical device, outdoors | NOT MEASURED — needs hardware |

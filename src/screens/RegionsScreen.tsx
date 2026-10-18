@@ -88,7 +88,7 @@ function DatasetCard({ row, lang, online, free, onChanged }: { row: Row; lang: L
     none: t('regions.notInstalled'),
     downloading: t('regions.downloading', { file: job?.file ?? '…', percent: pct }),
     paused: t('regions.paused', { percent: pct }),
-    failed: `${t('regions.failed')}${job?.error ? `: ${t(`regions.errors.${job.error}`)}` : ''}`,
+    failed: `${t('regions.failed')}: ${job?.errorMessage || (job?.error ? t(`regions.errors.${job.error}`) : '')}`,
     installed: t('regions.installed'),
     update: t('regions.updateAvailable'),
   };

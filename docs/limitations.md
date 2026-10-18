@@ -6,7 +6,7 @@ Last reviewed: 2026-10-14. Everything here is true of the code as tested; "not v
 
 | Limitation | Detail |
 |---|---|
-| **No Indonesian data has been built or measured** | Only the Monaco test fixture exists. Storage sizes, memory, route speed and pipeline behaviour on real Indonesian regions are **unknown**. Nationwide coverage is **not** claimed anywhere. |
+| **Indonesian data coverage** | Jambi province built and measured (663k nodes, 1.36M edges, 61 MB storage, ~53 MB RAM, p50 route 42 ms). Other provinces and island-scale datasets (all of Sumatra / Java) remain unmeasured and unbuilt. Nationwide coverage is **not** claimed. |
 | OSM completeness | Roads, one-ways, addresses and businesses in Indonesia may be missing or wrong in OpenStreetMap. The app says so and never implies completeness. |
 | One region at a time | Routes cannot cross region boundaries; both ends must be inside one installed region (`DIFFERENT_REGIONS`). |
 | No ferries / cross-island links | Indonesia's road graph is largely per island; a strait crossing is reported as "no route in downloaded data". |

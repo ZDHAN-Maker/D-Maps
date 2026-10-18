@@ -17,7 +17,8 @@ export function fakeServer(dir: string, opts: FakeServerOptions = {}) {
   const requests: string[] = [];
   const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    const name = url.split('/').pop() as string;
+    const pathname = url.split('?')[0];
+    const name = pathname.split('/').pop() as string;
     if (init?.signal?.aborted) throw new DOMException('aborted', 'AbortError');
     requests.push(name);
     opts.onRequest?.(name);

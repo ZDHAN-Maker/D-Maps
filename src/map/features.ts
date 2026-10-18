@@ -145,11 +145,8 @@ export function buildFeatureLayers(f: FeaturesFile, renderer: L.Renderer, pal: P
   const mediumFillGroup = L.layerGroup();
   const footGroup = L.layerGroup();
 
-  let majorCasing: L.Polyline | null = null;
-  let majorFill: L.Polyline | null = null;
-
   if (majorRoads.length > 0) {
-    majorCasing = L.polyline(majorRoads, { ...common, color: pal.roadCasing, weight: 8, lineCap: 'round', lineJoin: 'round' });
+    const majorCasing = L.polyline(majorRoads, { ...common, color: pal.roadCasing, weight: 8, lineCap: 'round', lineJoin: 'round' });
     base.addLayer(majorCasing);
   }
   base.addLayer(mediumCasingGroup);
@@ -157,7 +154,7 @@ export function buildFeatureLayers(f: FeaturesFile, renderer: L.Renderer, pal: P
   base.addLayer(minorFillGroup);
   base.addLayer(mediumFillGroup);
   if (majorRoads.length > 0) {
-    majorFill = L.polyline(majorRoads, { ...common, color: pal.roadMajor, weight: 5.5, lineCap: 'round', lineJoin: 'round' });
+    const majorFill = L.polyline(majorRoads, { ...common, color: pal.roadMajor, weight: 5.5, lineCap: 'round', lineJoin: 'round' });
     base.addLayer(majorFill);
   }
   base.addLayer(footGroup);

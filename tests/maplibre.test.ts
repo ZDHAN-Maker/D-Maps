@@ -49,13 +49,18 @@ describe('MapLibre GL & PMTiles integration', () => {
     expect(building?.properties.height).toBe(8); // 3D extrusion height
   });
 
-  it('generates a valid MapLibre Style Specification for light and dark themes', () => {
+  it('generates a valid MapLibre Style Specification for light and dark themes', async () => {
     const lightStyle = createMapLibreStyle('light');
     expect(lightStyle.version).toBe(8);
+    expect(lightStyle.sources.world).toBeDefined();
     expect(lightStyle.sources.features).toBeDefined();
     expect(lightStyle.sources.route).toBeDefined();
 
-    // Check 3D building extrusion layer
+    // Check world land and 3D building extrusion layer
+    const worldLandLayer = lightStyle.layers.find((l) => l.id === 'world-land');
+    expect(worldLandLayer).toBeDefined();
+    expect(worldLandLayer?.type).toBe('fill');
+
     const bldgLayer = lightStyle.layers.find((l) => l.id === 'buildings');
     expect(bldgLayer).toBeDefined();
     expect(bldgLayer?.type).toBe('fill-extrusion');
@@ -64,6 +69,10 @@ describe('MapLibre GL & PMTiles integration', () => {
     const darkStyle = createMapLibreStyle('dark');
     expect(darkStyle.version).toBe(8);
     const darkBg = darkStyle.layers.find((l) => l.id === 'background');
-    expect((darkBg?.paint as Record<string, unknown> | undefined)?.['background-color']).toBe('#0B1418');
+    expect((darkBg?.paint as Record<string, unknown> | undefined)?.['background-color']).toBe('#1F5A73');
+
+    const { validateStyleMin } = await import('@maplibre/maplibre-gl-style-spec');
+    const errors = validateStyleMin(lightStyle);
+    expect(errors).toEqual([]);
   });
 });

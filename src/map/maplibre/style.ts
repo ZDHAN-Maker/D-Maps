@@ -1,15 +1,20 @@
 import type { StyleSpecification } from 'maplibre-gl';
 import { PALETTES, type Palette } from '../palette';
+import worldLand from './worldLand.json';
 
 export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpecification {
   const pal: Palette = PALETTES[theme];
-  const bg = theme === 'dark' ? '#0B1418' : '#F4F3EE';
+  const landColor = theme === 'dark' ? '#131C21' : '#F5F3ED';
   const routeCasing = theme === 'dark' ? '#0B1418' : '#FFFFFF';
   const routeLine = theme === 'dark' ? '#8DD9F5' : '#0F4C5C';
 
   return {
     version: 8,
     sources: {
+      world: {
+        type: 'geojson',
+        data: worldLand as GeoJSON.GeoJSON,
+      },
       features: {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
@@ -23,11 +28,32 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
       },
     },
     layers: [
+      // 1. Base ocean background
       {
         id: 'background',
         type: 'background',
-        paint: { 'background-color': bg },
+        paint: { 'background-color': pal.water },
       },
+      // 2. Offline World Landmasses (Continents & Archipelago)
+      {
+        id: 'world-land',
+        type: 'fill',
+        source: 'world',
+        paint: {
+          'fill-color': landColor,
+          'fill-opacity': 1,
+        },
+      },
+      {
+        id: 'world-coast',
+        type: 'line',
+        source: 'world',
+        paint: {
+          'line-color': pal.coast,
+          'line-width': 1.2,
+        },
+      },
+      // 3. Installed Region Vector Features
       {
         id: 'water',
         type: 'fill',
@@ -36,6 +62,16 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
         paint: {
           'fill-color': pal.water,
           'fill-opacity': 0.85,
+        },
+      },
+      {
+        id: 'water-line',
+        type: 'line',
+        source: 'features',
+        filter: ['==', ['get', 'type'], 'water-line'],
+        paint: {
+          'line-color': pal.water,
+          'line-width': 2,
         },
       },
       {
@@ -78,9 +114,10 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
         type: 'line',
         source: 'features',
         filter: ['all', ['==', ['get', 'type'], 'road'], ['==', ['get', 'class'], 'major']],
+        minzoom: 3,
         paint: {
           'line-color': pal.roadCasing,
-          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2, 12, 6, 16, 10],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 4, 2, 12, 6, 16, 10],
         },
         layout: { 'line-cap': 'round', 'line-join': 'round' },
       },
@@ -89,10 +126,10 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
         type: 'line',
         source: 'features',
         filter: ['all', ['==', ['get', 'type'], 'road'], ['==', ['get', 'class'], 'medium']],
-        minzoom: 10,
+        minzoom: 7,
         paint: {
           'line-color': pal.roadCasing,
-          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 4, 16, 8],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 7, 2, 12, 4, 16, 8],
         },
         layout: { 'line-cap': 'round', 'line-join': 'round' },
       },
@@ -101,10 +138,10 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
         type: 'line',
         source: 'features',
         filter: ['all', ['==', ['get', 'type'], 'road'], ['==', ['get', 'class'], 'minor']],
-        minzoom: 13,
+        minzoom: 10,
         paint: {
           'line-color': pal.roadCasing,
-          'line-width': ['interpolate', ['linear'], ['zoom'], 13, 3, 16, 6],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2, 16, 6],
         },
         layout: { 'line-cap': 'round', 'line-join': 'round' },
       },
@@ -114,10 +151,10 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
         type: 'line',
         source: 'features',
         filter: ['all', ['==', ['get', 'type'], 'road'], ['==', ['get', 'class'], 'minor']],
-        minzoom: 13,
+        minzoom: 10,
         paint: {
           'line-color': pal.roadMinor,
-          'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1.5, 16, 4],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 1.2, 16, 4],
         },
         layout: { 'line-cap': 'round', 'line-join': 'round' },
       },
@@ -126,10 +163,10 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
         type: 'line',
         source: 'features',
         filter: ['all', ['==', ['get', 'type'], 'road'], ['==', ['get', 'class'], 'medium']],
-        minzoom: 10,
+        minzoom: 7,
         paint: {
           'line-color': pal.roadMinor,
-          'line-width': ['interpolate', ['linear'], ['zoom'], 10, 2, 16, 6],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 7, 1.5, 12, 3, 16, 6],
         },
         layout: { 'line-cap': 'round', 'line-join': 'round' },
       },
@@ -138,9 +175,10 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
         type: 'line',
         source: 'features',
         filter: ['all', ['==', ['get', 'type'], 'road'], ['==', ['get', 'class'], 'major']],
+        minzoom: 3,
         paint: {
           'line-color': pal.roadMajor,
-          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1, 12, 4, 16, 8],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 4, 1, 12, 4, 16, 8],
         },
         layout: { 'line-cap': 'round', 'line-join': 'round' },
       },
@@ -149,7 +187,7 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
         type: 'line',
         source: 'features',
         filter: ['all', ['==', ['get', 'type'], 'road'], ['==', ['get', 'class'], 'foot']],
-        minzoom: 14,
+        minzoom: 13,
         paint: {
           'line-color': pal.foot,
           'line-width': 1.2,

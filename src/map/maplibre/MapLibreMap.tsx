@@ -96,6 +96,9 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       center: [103.6, -1.6], // Default near central Sumatra / Jambi
       zoom: 6,
       maxPitch: 65,
+      canvasContextAttributes: {
+        preserveDrawingBuffer: true,
+      },
     });
 
     puckRef.current = new MapLibrePositionPuck(map);
@@ -127,6 +130,17 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       onMapClick(e.lngLat.lat, e.lngLat.lng);
     });
 
+    map.on('load', () => {
+      isLoadedRef.current = true;
+      syncFeatures();
+      syncRoute();
+    });
+
+    map.on('styledata', () => {
+      syncFeatures();
+      syncRoute();
+    });
+
     mapRef.current = map;
 
     return () => {
@@ -147,106 +161,109 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
   }, [active, navigating]);
 
   // Update theme / style
+  const prevThemeRef = useRef(theme);
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    if (prevThemeRef.current === theme) return;
+    prevThemeRef.current = theme;
     map.setStyle(createMapLibreStyle(theme), { diff: true });
   }, [theme]);
 
-  // Feed installed vector features to MapLibre GeoJSON source
-  useEffect(() => {
+  const isLoadedRef = useRef(false);
+  const regionsRef = useRef(regions);
+  regionsRef.current = regions;
+  const routeRef = useRef(shownRoute);
+  routeRef.current = shownRoute;
+
+  const syncFeatures = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
+    const source = map.getSource('features') as GeoJSONSource | undefined;
+    if (!source) return;
 
-    const updateSource = () => {
-      const source = map.getSource('features') as GeoJSONSource | undefined;
-      if (!source) return;
-
-      const combinedFeatures: ReturnType<typeof featuresToGeoJson>['features'] = [];
-      for (const r of regions) {
-        if (r.features) {
-          const col = featuresToGeoJson(r.features);
-          combinedFeatures.push(...col.features);
-        }
+    const currentRegions = regionsRef.current;
+    const combinedFeatures: ReturnType<typeof featuresToGeoJson>['features'] = [];
+    for (const r of currentRegions) {
+      if (r.features) {
+        const col = featuresToGeoJson(r.features);
+        combinedFeatures.push(...col.features);
       }
+    }
+    source.setData({
+      type: 'FeatureCollection',
+      features: combinedFeatures,
+    });
+
+    // Fit bounds to installed region bbox
+    const key = currentRegions.map((r) => r.id).join(',');
+    if (key && key !== fittedKey.current) {
+      const b = currentRegions.map((r) => r.bbox);
+      const minLat = Math.min(...b.map((x) => x[0]));
+      const minLon = Math.min(...b.map((x) => x[1]));
+      const maxLat = Math.max(...b.map((x) => x[2]));
+      const maxLon = Math.max(...b.map((x) => x[3]));
+      map.fitBounds(
+        [
+          [minLon, minLat],
+          [maxLon, maxLat],
+        ],
+        { padding: 40, duration: 800 }
+      );
+      fittedKey.current = key;
+    }
+  }, []);
+
+  const syncRoute = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const source = map.getSource('route') as GeoJSONSource | undefined;
+    if (!source) return;
+
+    const currentRoute = routeRef.current;
+    if (currentRoute?.geometry && currentRoute.geometry.length >= 2) {
+      const coords = currentRoute.geometry
+        .filter(([la, lo]) => Number.isFinite(la) && Number.isFinite(lo))
+        .map(([la, lo]) => [lo, la]); // [lon, lat]
+
       source.setData({
         type: 'FeatureCollection',
-        features: combinedFeatures,
+        features: [
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: { type: 'LineString', coordinates: coords },
+          },
+        ],
       });
 
-      // Fit bounds to installed region bbox
-      const key = regions.map((r) => r.id).join(',');
-      if (key && key !== fittedKey.current) {
-        const b = regions.map((r) => r.bbox);
-        const minLat = Math.min(...b.map((x) => x[0]));
-        const minLon = Math.min(...b.map((x) => x[1]));
-        const maxLat = Math.max(...b.map((x) => x[2]));
-        const maxLon = Math.max(...b.map((x) => x[3]));
-        map.fitBounds(
-          [
-            [minLon, minLat],
-            [maxLon, maxLat],
-          ],
-          { padding: 40, duration: 800 }
-        );
-        fittedKey.current = key;
+      if (!navigating && coords.length >= 2) {
+        const lons = coords.map((c) => c[0]);
+        const lats = coords.map((c) => c[1]);
+        const bounds: LngLatBoundsLike = [
+          [Math.min(...lons), Math.min(...lats)],
+          [Math.max(...lons), Math.max(...lats)],
+        ];
+        map.fitBounds(bounds, { padding: 50, duration: 800 });
       }
-    };
-
-    if (map.isStyleLoaded()) {
-      updateSource();
     } else {
-      map.once('load', updateSource);
-      map.once('styledata', updateSource);
+      source.setData({ type: 'FeatureCollection', features: [] });
     }
-  }, [regions]);
+  }, [navigating]);
+
+  // Feed installed vector features to MapLibre GeoJSON source
+  useEffect(() => {
+    if (isLoadedRef.current) {
+      syncFeatures();
+    }
+  }, [regions, syncFeatures]);
 
   // Feed route line to MapLibre GeoJSON source
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const updateRoute = () => {
-      const source = map.getSource('route') as GeoJSONSource | undefined;
-      if (!source) return;
-
-      if (shownRoute?.geometry && shownRoute.geometry.length >= 2) {
-        const coords = shownRoute.geometry
-          .filter(([la, lo]) => Number.isFinite(la) && Number.isFinite(lo))
-          .map(([la, lo]) => [lo, la]); // [lon, lat]
-
-        source.setData({
-          type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              properties: {},
-              geometry: { type: 'LineString', coordinates: coords },
-            },
-          ],
-        });
-
-        if (!navigating && coords.length >= 2) {
-          const lons = coords.map((c) => c[0]);
-          const lats = coords.map((c) => c[1]);
-          const bounds: LngLatBoundsLike = [
-            [Math.min(...lons), Math.min(...lats)],
-            [Math.max(...lons), Math.max(...lats)],
-          ];
-          map.fitBounds(bounds, { padding: 50, duration: 800 });
-        }
-      } else {
-        source.setData({ type: 'FeatureCollection', features: [] });
-      }
-    };
-
-    if (map.isStyleLoaded()) {
-      updateRoute();
-    } else {
-      map.once('load', updateRoute);
-      map.once('styledata', updateRoute);
+    if (isLoadedRef.current) {
+      syncRoute();
     }
-  }, [shownRoute, navigating]);
+  }, [shownRoute, navigating, syncRoute]);
 
   // Markers for Origin ('from') and Destination ('to')
   useEffect(() => {

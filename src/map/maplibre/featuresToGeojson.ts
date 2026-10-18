@@ -41,20 +41,39 @@ function decodeToGeoJsonPts(flat: number[], scale: number): [number, number][] {
 }
 
 /**
+ * Ensures a polygon linear ring is closed and has at least 4 positions (GeoJSON spec RFC 7946).
+ */
+function ensureClosedRing(pts: [number, number][]): [number, number][] {
+  if (pts.length < 3) return pts;
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  if (first[0] !== last[0] || first[1] !== last[1]) {
+    return [...pts, [first[0], first[1]]];
+  }
+  return pts;
+}
+
+/**
  * Converts a FeaturesFile (v1 format) into a GeoJSON FeatureCollection
  * suitable for MapLibre's built-in geojson-vt vector tile slicing.
  */
 export function featuresToGeoJson(f: FeaturesFile): GeoJsonCollection {
   const features: GeoJsonFeature[] = [];
 
-  // 1. Water
+  // 1. Water (polygons for lakes/seas, linestrings for rivers/streams)
   for (const flat of f.water) {
     const pts = decodeToGeoJsonPts(flat, f.scale);
     if (pts.length >= 3) {
       features.push({
         type: 'Feature',
         properties: { type: 'water' },
-        geometry: { type: 'Polygon', coordinates: [pts] },
+        geometry: { type: 'Polygon', coordinates: [ensureClosedRing(pts)] },
+      });
+    } else if (pts.length === 2) {
+      features.push({
+        type: 'Feature',
+        properties: { type: 'water-line' },
+        geometry: { type: 'LineString', coordinates: pts },
       });
     }
   }
@@ -66,7 +85,7 @@ export function featuresToGeoJson(f: FeaturesFile): GeoJsonCollection {
       features.push({
         type: 'Feature',
         properties: { type: 'green' },
-        geometry: { type: 'Polygon', coordinates: [pts] },
+        geometry: { type: 'Polygon', coordinates: [ensureClosedRing(pts)] },
       });
     }
   }
@@ -84,10 +103,24 @@ export function featuresToGeoJson(f: FeaturesFile): GeoJsonCollection {
   }
 
   // 4. Roads
+  let hasMajor = false;
+  for (const [hw] of f.roads) {
+    if (MAJOR.has(hw)) {
+      hasMajor = true;
+      break;
+    }
+  }
+
   for (const [hw, flat] of f.roads) {
     const pts = decodeToGeoJsonPts(flat, f.scale);
     if (pts.length >= 2) {
-      const cls = MAJOR.has(hw) ? 'major' : MEDIUM.has(hw) ? 'medium' : FOOT.has(hw) ? 'foot' : 'minor';
+      const cls = MAJOR.has(hw) || (!hasMajor && !FOOT.has(hw))
+        ? 'major'
+        : MEDIUM.has(hw)
+          ? 'medium'
+          : FOOT.has(hw)
+            ? 'foot'
+            : 'minor';
       features.push({
         type: 'Feature',
         properties: { type: 'road', highway: hw, class: cls },
@@ -103,7 +136,7 @@ export function featuresToGeoJson(f: FeaturesFile): GeoJsonCollection {
       features.push({
         type: 'Feature',
         properties: { type: 'building', height: 8 },
-        geometry: { type: 'Polygon', coordinates: [pts] },
+        geometry: { type: 'Polygon', coordinates: [ensureClosedRing(pts)] },
       });
     }
   }

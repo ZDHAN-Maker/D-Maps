@@ -88,6 +88,7 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
   }, []);
 
   const setPoint = useCallback((which: 'from' | 'to', p: Point) => {
+    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon)) return;
     if (which === 'from') { setFrom(p); setPick('to'); } else { setTo(p); setPick('from'); }
   }, []);
 
@@ -101,23 +102,42 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     overlayRef.current = L.layerGroup().addTo(map);
 
     const updateFeatures = () => {
-      const z = map.getZoom();
-      const b = map.getBounds();
-      for (const f of featureRef.current) f.update(z, b);
+      const m = mapRef.current;
+      if (!m) return;
+      try {
+        const size = m.getSize();
+        if (!size || size.x === 0 || size.y === 0) return;
+        const currZ = m.getZoom();
+        if (typeof currZ !== 'number' || !Number.isFinite(currZ)) return;
+        const b = m.getBounds();
+        if (!b || !b.isValid()) return;
+        const sw = b.getSouthWest(), ne = b.getNorthEast();
+        if (!Number.isFinite(sw.lat) || !Number.isFinite(sw.lng) || !Number.isFinite(ne.lat) || !Number.isFinite(ne.lng)) return;
+        for (const f of featureRef.current) f.update(currZ, b);
+      } catch {
+        // Safe guard against unproject mid-resize / unmounted container
+      }
     };
 
     map.on('moveend', () => {
-      const c = map.getCenter();
-      setCenter({ lat: c.lat, lon: c.lng });
+      try {
+        const c = map.getCenter();
+        if (Number.isFinite(c.lat) && Number.isFinite(c.lng)) {
+          setCenter({ lat: c.lat, lon: c.lng });
+        }
+      } catch { /* ignore */ }
       updateFeatures();
     });
     map.on('dragstart', () => setFollow(false)); // only a user drag; programmatic setView does not fire it
     map.on('zoomend', () => {
-      const show = map.getZoom() >= BUILDING_MIN_ZOOM;
-      for (const f of featureRef.current) {
-        if (show && !map.hasLayer(f.buildings)) f.buildings.addTo(map);
-        if (!show && map.hasLayer(f.buildings)) map.removeLayer(f.buildings);
-      }
+      try {
+        const currZ = map.getZoom();
+        const show = Number.isFinite(currZ) && currZ >= BUILDING_MIN_ZOOM;
+        for (const f of featureRef.current) {
+          if (show && !map.hasLayer(f.buildings)) f.buildings.addTo(map);
+          if (!show && map.hasLayer(f.buildings)) map.removeLayer(f.buildings);
+        }
+      } catch { /* ignore */ }
       updateFeatures();
     });
 
@@ -131,7 +151,7 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     });
 
     map.on('click', (e: L.LeafletMouseEvent) => {
-      if (!hasDataRef.current) return;
+      if (!hasDataRef.current || !e.latlng || !Number.isFinite(e.latlng.lat) || !Number.isFinite(e.latlng.lng)) return;
       const label = `${t('route.mapPoint')} (${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)})`;
       setPoint(pickRef.current, { lat: e.latlng.lat, lon: e.latlng.lng, label });
     });
@@ -194,13 +214,23 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     const c = OVERLAY[theme];
     const dot = (p: Point, fill: string) =>
       L.circleMarker([p.lat, p.lon], { radius: 9, color: c.dotStroke, weight: 3, fillColor: fill, fillOpacity: 1, interactive: false });
-    if (from) layer.addLayer(dot(from, c.from));
-    if (to) layer.addLayer(dot(to, c.to));
-    if (shownRoute) {
-      const line = L.polyline(shownRoute.geometry, { color: c.line, weight: 6, opacity: 0.95, interactive: false });
-      layer.addLayer(L.polyline(shownRoute.geometry, { color: c.casing, weight: 10, opacity: 0.9, interactive: false }));
-      layer.addLayer(line);
-      if (!navigating) map.fitBounds(line.getBounds(), { padding: [40, 40] }); // while navigating the map follows the vehicle
+    if (from && Number.isFinite(from.lat) && Number.isFinite(from.lon)) layer.addLayer(dot(from, c.from));
+    if (to && Number.isFinite(to.lat) && Number.isFinite(to.lon)) layer.addLayer(dot(to, c.to));
+    if (shownRoute?.geometry && shownRoute.geometry.length > 0) {
+      const valid = shownRoute.geometry.filter(([la, lo]) => Number.isFinite(la) && Number.isFinite(lo));
+      if (valid.length >= 2) {
+        const line = L.polyline(valid, { color: c.line, weight: 6, opacity: 0.95, interactive: false });
+        layer.addLayer(L.polyline(valid, { color: c.casing, weight: 10, opacity: 0.9, interactive: false }));
+        layer.addLayer(line);
+        if (!navigating) {
+          try {
+            const b = line.getBounds();
+            if (b && b.isValid()) {
+              map.fitBounds(b, { padding: [40, 40] });
+            }
+          } catch { /* ignore degenerate bounds */ }
+        }
+      }
     }
   }, [from, to, shownRoute, navigating, theme]);
 
@@ -209,16 +239,31 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    if (!shownFix) { posRef.current?.remove(); posRef.current = null; return; }
+    if (!shownFix || !Number.isFinite(shownFix.lat) || !Number.isFinite(shownFix.lon)) {
+      posRef.current?.remove();
+      posRef.current = null;
+      return;
+    }
     posRef.current ??= new PositionMarker(map);
     posRef.current.update(shownFix, nav.phase === 'active' && nav.stale);
-    if (nav.phase === 'active' && follow) map.setView([shownFix.lat, shownFix.lon], Math.max(map.getZoom(), 17), { animate: false });
+    if (nav.phase === 'active' && follow) {
+      const currZ = map.getZoom();
+      const z = Number.isFinite(currZ) ? Math.max(currZ, 17) : 17;
+      map.setView([shownFix.lat, shownFix.lon], z, { animate: false });
+    }
   }, [shownFix, nav.stale, nav.phase, follow]);
 
   // the map changes size when the navigation overlay replaces the side panel
   useEffect(() => { const id = setTimeout(() => mapRef.current?.invalidateSize(), 50); return () => clearTimeout(id); }, [navigating]);
 
-  const focusLatLon = (lat: number, lon: number) => mapRef.current?.setView([lat, lon], Math.max(mapRef.current.getZoom(), 17));
+  const focusLatLon = (lat: number, lon: number) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const currZ = map.getZoom();
+    const z = Number.isFinite(currZ) ? Math.max(currZ, 17) : 17;
+    map.setView([lat, lon], z);
+  };
   const asPoint = (p: PlaceRecord): Point => ({ lat: p.la, lon: p.lo, label: p.n });
   const choose = (which: 'from' | 'to', p: PlaceRecord) => {
     setPoint(which, asPoint(p));
@@ -229,10 +274,15 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     setLocating(true); setLocError(null);
     try {
       const fix = await new DeviceGps(undefined, undefined, settingsStore.get().highAccuracy).getOnce();
+      if (!Number.isFinite(fix.lat) || !Number.isFinite(fix.lon)) {
+        throw new Error('Invalid GPS coordinates');
+      }
       setMyFix(fix);
       setFrom({ lat: fix.lat, lon: fix.lon, label: t('route.myLocation') });
       setPick('to');
-      mapRef.current?.setView([fix.lat, fix.lon], Math.max(mapRef.current.getZoom(), 16), { animate: false });
+      const currZ = mapRef.current?.getZoom();
+      const z = Number.isFinite(currZ) ? Math.max(currZ!, 16) : 16;
+      mapRef.current?.setView([fix.lat, fix.lon], z, { animate: false });
     } catch (err) {
       setLocError(t(`nav.gpsErrors.${(err as GpsError).code ?? 'position_unavailable'}`));
     } finally { setLocating(false); }

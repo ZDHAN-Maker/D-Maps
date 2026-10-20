@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, Component, type ReactNode } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
@@ -46,6 +46,31 @@ interface Props {
   onNavigatingChange(navigating: boolean): void;
 }
 
+interface MapErrorBoundaryProps {
+  onError: () => void;
+  children: ReactNode;
+}
+
+class MapErrorBoundary extends Component<MapErrorBoundaryProps, { hasError: boolean }> {
+  constructor(props: MapErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    console.warn('MapLibre error caught by boundary:', error);
+    this.props.onError();
+  }
+  render() {
+    if (this.state.hasError) {
+      return null;
+    }
+    return this.props.children;
+  }
+}
+
 export default function MapScreen({ online, active, goTo, onNavigatingChange }: Props) {
   const { t, i18n } = useTranslation();
   const lang: Lang = i18n.language === 'en' ? 'en' : 'id';
@@ -54,7 +79,8 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
   const hasData = !regionSet.isEmpty;
   const theme = useEffectiveTheme();
   const [settings] = useSettings();
-  const isMapLibre = settings.mapEngine === 'maplibre';
+  const [maplibreFailed, setMaplibreFailed] = useState(false);
+  const isMapLibre = settings.mapEngine === 'maplibre' && !maplibreFailed;
   const maplibreRef = useRef<MapLibreMapHandle | null>(null);
 
   const mapEl = useRef<HTMLDivElement>(null);
@@ -494,30 +520,33 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
       </aside>
       <div className="map" ref={mapEl} role="application" aria-label={t('mapLabel')} data-testid="map">
         {isMapLibre && (
-          <MapLibreMap
-            ref={maplibreRef}
-            regions={regionSet.regions}
-            theme={theme}
-            from={from}
-            to={to}
-            shownRoute={shownRoute}
-            fix={shownFix}
-            stale={nav.phase === 'active' && nav.stale}
-            navigating={navigating}
-            following={follow}
-            active={active}
-            onMapClick={(lat, lon) => {
-              if (!hasDataRef.current || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
-              const label = `${t('route.mapPoint')} (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
-              setPoint(pickRef.current, { lat, lon, label });
-            }}
-            onUserDrag={() => setFollow(false)}
-            onCenterChange={(c) => {
-              if (Number.isFinite(c.lat) && Number.isFinite(c.lon)) {
-                setCenter(c);
-              }
-            }}
-          />
+          <MapErrorBoundary onError={() => setMaplibreFailed(true)}>
+            <MapLibreMap
+              ref={maplibreRef}
+              regions={regionSet.regions}
+              theme={theme}
+              from={from}
+              to={to}
+              shownRoute={shownRoute}
+              fix={shownFix}
+              stale={nav.phase === 'active' && nav.stale}
+              navigating={navigating}
+              following={follow}
+              active={active}
+              onMapClick={(lat, lon) => {
+                if (!hasDataRef.current || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
+                const label = `${t('route.mapPoint')} (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+                setPoint(pickRef.current, { lat, lon, label });
+              }}
+              onUserDrag={() => setFollow(false)}
+              onCenterChange={(c) => {
+                if (Number.isFinite(c.lat) && Number.isFinite(c.lon)) {
+                  setCenter(c);
+                }
+              }}
+              onError={() => setMaplibreFailed(true)}
+            />
+          </MapErrorBoundary>
         )}
       </div>
       {navigating && (

@@ -39,6 +39,7 @@ interface Props {
   onUserDrag(): void;
   onRecenter?(): void;
   onCenterChange?(center: { lat: number; lon: number }): void;
+  onError?(): void;
 }
 
 const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
@@ -56,6 +57,7 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     onMapClick,
     onUserDrag,
     onCenterChange,
+    onError,
   }: Props,
   ref
 ) {
@@ -90,16 +92,37 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = new Map({
-      container: containerRef.current,
-      style: createMapLibreStyle(theme),
-      center: [103.6, -1.6], // Default near central Sumatra / Jambi
-      zoom: 6,
-      maxPitch: 65,
-      canvasContextAttributes: {
-        preserveDrawingBuffer: true,
-      },
-    });
+    const isTest = typeof navigator !== 'undefined' && (
+      navigator.webdriver === true ||
+      Boolean((window as unknown as { __PLAYWRIGHT__?: boolean }).__PLAYWRIGHT__)
+    );
+
+    let map: Map;
+    try {
+      map = new Map({
+        container: containerRef.current,
+        style: createMapLibreStyle(theme),
+        center: [103.6, -1.6], // Default near central Sumatra / Jambi
+        zoom: 6,
+        maxPitch: 65,
+        pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2),
+        canvasContextAttributes: {
+          preserveDrawingBuffer: isTest,
+          powerPreference: 'default',
+        },
+      });
+    } catch (err) {
+      console.error('Failed to initialize MapLibre GL map:', err);
+      onError?.();
+      return;
+    }
+
+    const canvas = map.getCanvas();
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      console.warn('WebGL context lost. Prevented browser crash.');
+    };
+    canvas.addEventListener('webglcontextlost', handleContextLost);
 
     puckRef.current = new MapLibrePositionPuck(map);
 
@@ -144,13 +167,14 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     mapRef.current = map;
 
     return () => {
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
       puckRef.current?.remove();
       fromMarkerRef.current?.remove();
       toMarkerRef.current?.remove();
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [onError]);
 
   // Resize on active tab or navigation view change
   useEffect(() => {

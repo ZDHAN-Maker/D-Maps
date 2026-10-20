@@ -368,18 +368,20 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
 
   // Feed installed vector features to MapLibre GeoJSON source
   useEffect(() => {
+    if (!active) return;
     if (isLoadedRef.current) {
       syncFeatures();
       syncBuildings();
     }
-  }, [regions, syncFeatures, syncBuildings]);
+  }, [active, regions, syncFeatures, syncBuildings]);
 
   // Feed route line to MapLibre GeoJSON source
   useEffect(() => {
+    if (!active) return;
     if (isLoadedRef.current) {
       syncRoute();
     }
-  }, [shownRoute, navigating, syncRoute]);
+  }, [active, shownRoute, navigating, syncRoute]);
 
   // Markers for Origin ('from') and Destination ('to')
   useEffect(() => {

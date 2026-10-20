@@ -39,35 +39,24 @@ export interface BuildingSpatialIndex {
  * fast viewport culling when zoomed in (zoom >= 15) without overloading memory.
  */
 export function createBuildingSpatialIndex(f: FeaturesFile): BuildingSpatialIndex {
-  const grid = new Map<string, [number, number][][]>();
-  for (const flat of f.buildings) {
+  const grid = new Map<string, number[][]>();
+  const scale = f.scale;
+  for (let i = 0; i < f.buildings.length; i++) {
+    const flat = f.buildings[i];
     if (flat.length < 6) continue;
-    const pts = decodeToGeoJsonPts(flat, f.scale);
-    if (pts.length < 3) continue;
-
-    let minLo = 180, maxLo = -180, minLa = 90, maxLa = -90;
-    for (const [lo, la] of pts) {
-      if (lo < minLo) minLo = lo; if (lo > maxLo) maxLo = lo;
-      if (la < minLa) minLa = la; if (la > maxLa) maxLa = la;
-    }
-
-    const gx0 = Math.floor(minLo / CELL_SIZE), gx1 = Math.floor(maxLo / CELL_SIZE);
-    const gy0 = Math.floor(minLa / CELL_SIZE), gy1 = Math.floor(maxLa / CELL_SIZE);
-    for (let gx = gx0; gx <= gx1; gx++) {
-      for (let gy = gy0; gy <= gy1; gy++) {
-        const k = `${gx}:${gy}`;
-        let cell = grid.get(k);
-        if (!cell) { cell = []; grid.set(k, cell); }
-        cell.push(pts);
-      }
-    }
+    const gx = Math.floor((flat[1] / scale) / CELL_SIZE);
+    const gy = Math.floor((flat[0] / scale) / CELL_SIZE);
+    const k = `${gx}:${gy}`;
+    let cell = grid.get(k);
+    if (!cell) { cell = []; grid.set(k, cell); }
+    cell.push(flat);
   }
 
   return {
     query(bbox, limit = 3000) {
       const gx0 = Math.floor(bbox.minLon / CELL_SIZE), gx1 = Math.floor(bbox.maxLon / CELL_SIZE);
       const gy0 = Math.floor(bbox.minLat / CELL_SIZE), gy1 = Math.floor(bbox.maxLat / CELL_SIZE);
-      const seen = new Set<[number, number][]>();
+      const seen = new Set<number[]>();
       const features: GeoJsonFeature[] = [];
 
       for (let gx = gx0; gx <= gx1; gx++) {
@@ -75,9 +64,11 @@ export function createBuildingSpatialIndex(f: FeaturesFile): BuildingSpatialInde
           const cell = grid.get(`${gx}:${gy}`);
           if (!cell) continue;
           for (let i = 0; i < cell.length; i++) {
-            const pts = cell[i];
-            if (seen.has(pts)) continue;
-            seen.add(pts);
+            const flat = cell[i];
+            if (seen.has(flat)) continue;
+            seen.add(flat);
+            const pts = decodeToGeoJsonPts(flat, scale);
+            if (pts.length < 3) continue;
             features.push({
               type: 'Feature',
               properties: { type: 'building', height: 8 },

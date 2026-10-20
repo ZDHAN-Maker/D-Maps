@@ -1,16 +1,96 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="D'Maps">
-  <title>D'Maps</title>
-  <rect width="512" height="512" rx="112" fill="#FFFDF7"/>
-  <!-- soft map blocks -->
-  <path d="M0 330 C90 300 150 360 250 335 C350 310 420 350 512 320 V512 H0 Z" fill="#B9F3D0"/>
-  <path d="M0 400 C110 380 190 430 290 410 C380 392 450 425 512 405 V512 H0 Z" fill="#8DD9F5"/>
-  <!-- road winding to the pin -->
-  <path d="M96 470 C170 400 120 360 230 330 C330 305 300 270 256 250" fill="none" stroke="#FFFDF7" stroke-width="30" stroke-linecap="round"/>
-  <path d="M96 470 C170 400 120 360 230 330 C330 305 300 270 256 250" fill="none" stroke="#FFE27A" stroke-width="16" stroke-linecap="round"/>
-  <path d="M96 470 C170 400 120 360 230 330 C330 305 300 270 256 250" fill="none" stroke="#FFFDF7" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 22"/>
-  <!-- map pin -->
-  <path d="M256 70 C190 70 142 118 142 182 C142 252 220 318 256 372 C292 318 370 252 370 182 C370 118 322 70 256 70 Z" fill="#FF9D91" stroke="#2B3A42" stroke-width="12" stroke-linejoin="round"/>
-  <circle cx="256" cy="182" r="52" fill="#FFFDF7" stroke="#2B3A42" stroke-width="12"/>
-  <!-- navigation arrow inside the pin -->
-  <path d="M256 150 L284 208 L256 194 L228 208 Z" fill="#2B3A42" stroke="#2B3A42" stroke-width="6" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="D'Maps">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E3A8A" />
+      <stop offset="45%" stop-color="#1D4ED8" />
+      <stop offset="100%" stop-color="#0284C7" />
+    </linearGradient>
+    <linearGradient id="foldLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93C5FD" />
+      <stop offset="100%" stop-color="#60A5FA" />
+    </linearGradient>
+    <linearGradient id="foldCenter" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <linearGradient id="foldRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D4ED8" />
+      <stop offset="100%" stop-color="#1E40AF" />
+    </linearGradient>
+    <linearGradient id="pinGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF5252" />
+      <stop offset="100%" stop-color="#E11D48" />
+    </linearGradient>
+    <linearGradient id="pinHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="routeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="50%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#0B132B" flood-opacity="0.5" />
+    </filter>
+    <filter id="pinShadow" x="-30%" y="-20%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#09142B" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- App icon squircle background -->
+  <rect width="512" height="512" rx="116" fill="url(#bgGrad)" />
+
+  <!-- Subtle contour map grid lines in background -->
+  <g opacity="0.12" stroke="#FFFFFF" stroke-width="2" fill="none">
+    <ellipse cx="256" cy="256" rx="220" ry="160" />
+    <ellipse cx="256" cy="256" rx="170" ry="120" />
+    <ellipse cx="256" cy="256" rx="120" ry="80" />
+    <path d="M 0 160 Q 256 220 512 160" />
+    <path d="M 0 340 Q 256 280 512 340" />
+    <path d="M 160 0 Q 220 256 160 512" />
+    <path d="M 340 0 Q 280 256 340 512" />
+  </g>
+
+  <!-- 3D Folded Map Base with modern shadow -->
+  <g filter="url(#cardShadow)">
+    <!-- Fold 1 (Left pane) -->
+    <path d="M 92 388 L 196 352 L 196 208 L 92 244 Z" fill="url(#foldLeft)" />
+    <!-- Fold 2 (Center pane) -->
+    <path d="M 196 352 L 316 392 L 316 248 L 196 208 Z" fill="url(#foldCenter)" />
+    <!-- Fold 3 (Right pane) -->
+    <path d="M 316 392 L 420 352 L 420 208 L 316 248 Z" fill="url(#foldRight)" />
+
+    <!-- Grid / road lines on map facets -->
+    <path d="M 92 316 L 196 280 L 316 320 L 420 280" stroke="#FFFFFF" stroke-opacity="0.28" stroke-width="6" stroke-linecap="round" fill="none" />
+    <path d="M 144 226 L 144 370" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="4" stroke-linecap="round" />
+    <path d="M 256 228 L 256 372" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="4" stroke-linecap="round" />
+    <path d="M 368 228 L 368 372" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="4" stroke-linecap="round" />
+
+    <!-- Glowing navigation route -->
+    <path d="M 112 360 C 150 320, 160 360, 210 320 C 240 295, 245 285, 256 270"
+          stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    <path d="M 112 360 C 150 320, 160 360, 210 320 C 240 295, 245 285, 256 270"
+          stroke="url(#routeGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    <!-- Route origin pulse dot -->
+    <circle cx="112" cy="360" r="10" fill="#FFFFFF" />
+    <circle cx="112" cy="360" r="6" fill="#10B981" />
+  </g>
+
+  <!-- Location Pin Shadow on map surface -->
+  <ellipse cx="256" cy="272" rx="30" ry="12" fill="#0A1628" opacity="0.4" />
+
+  <!-- Modern 3D Floating Pin -->
+  <g filter="url(#pinShadow)">
+    <!-- Pin outer shape -->
+    <path d="M 256 86 C 204 86 166 128 166 180 C 166 236 226 288 256 332 C 286 288 346 236 346 180 C 346 128 308 86 256 86 Z"
+          fill="url(#pinGrad)" />
+    <!-- Top inner highlight for glassmorphism / 3D feel -->
+    <path d="M 256 94 C 210 94 176 130 176 176 C 176 186 179 198 184 208 C 196 150 236 108 256 104 C 276 108 316 150 328 208 C 333 198 336 186 336 176 C 336 130 302 94 256 94 Z"
+          fill="url(#pinHighlight)" />
+    <!-- Pin center disc -->
+    <circle cx="256" cy="176" r="46" fill="#FFFFFF" />
+    <!-- Sleek Navigation Chevron Arrow -->
+    <path d="M 256 144 L 284 200 L 256 188 L 228 200 Z" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="2" stroke-linejoin="round" />
+  </g>
 </svg>

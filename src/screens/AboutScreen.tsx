@@ -9,7 +9,7 @@ export default function AboutScreen() {
   const limits = t('about.limitList', { returnObjects: true }) as unknown as string[];
 
   return (
-    <div className="screen" data-testid="screen-about">
+    <div className="screen" data-testid="screen-about" tabIndex={0} aria-label={t('about.title')}>
       <header className="brand">
         <img src={`${import.meta.env.BASE_URL}icons/dmaps-icon.svg`} alt="" width={64} height={64} />
         <div>

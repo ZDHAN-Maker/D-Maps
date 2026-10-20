@@ -7,7 +7,18 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 setWorkerUrl(maplibreWorkerUrl);
 import { Compass, Box } from 'lucide-react';
 import { createMapLibreStyle } from './style';
-import { featuresToGeoJson } from './featuresToGeojson';
+import { featuresToGeoJson, createBuildingSpatialIndex, type BuildingSpatialIndex, type GeoJsonFeature } from './featuresToGeojson';
+import type { FeaturesFile } from '../features';
+
+const buildingIndexCache = new WeakMap<FeaturesFile, BuildingSpatialIndex>();
+function getBuildingIndex(f: FeaturesFile): BuildingSpatialIndex {
+  let idx = buildingIndexCache.get(f);
+  if (!idx) {
+    idx = createBuildingSpatialIndex(f);
+    buildingIndexCache.set(f, idx);
+  }
+  return idx;
+}
 import { registerPMTilesProtocol } from './pmtilesProtocol';
 import { MapLibrePositionPuck } from './positionPuck';
 import type { RegionRuntime } from '../../regions/regionSet';
@@ -147,6 +158,7 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       } catch {
         /* ignore */
       }
+      syncBuildings();
     });
 
     map.on('click', (e) => {
@@ -156,11 +168,13 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     map.on('load', () => {
       isLoadedRef.current = true;
       syncFeatures();
+      syncBuildings();
       syncRoute();
     });
 
     map.on('styledata', () => {
       syncFeatures();
+      syncBuildings();
       syncRoute();
     });
 
@@ -249,6 +263,45 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     }
   }, []);
 
+  const syncBuildings = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const source = map.getSource('buildings') as GeoJSONSource | undefined;
+    if (!source) return;
+
+    const zoom = map.getZoom();
+    if (zoom < 14.5) {
+      source.setData({ type: 'FeatureCollection', features: [] });
+      return;
+    }
+
+    const bounds = map.getBounds();
+    const bbox = {
+      minLon: bounds.getWest(),
+      minLat: bounds.getSouth(),
+      maxLon: bounds.getEast(),
+      maxLat: bounds.getNorth(),
+    };
+
+    const currentRegions = regionsRef.current;
+    const buildingFeatures: GeoJsonFeature[] = [];
+    for (const r of currentRegions) {
+      if (r.features && r.features.buildings.length > 5000) {
+        const idx = getBuildingIndex(r.features);
+        const feats = idx.query(bbox, 3000);
+        for (let i = 0; i < feats.length; i++) {
+          buildingFeatures.push(feats[i]);
+          if (buildingFeatures.length >= 3000) break;
+        }
+      }
+    }
+
+    source.setData({
+      type: 'FeatureCollection',
+      features: buildingFeatures,
+    });
+  }, []);
+
   const syncRoute = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -297,8 +350,9 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
   useEffect(() => {
     if (isLoadedRef.current) {
       syncFeatures();
+      syncBuildings();
     }
-  }, [regions, syncFeatures]);
+  }, [regions, syncFeatures, syncBuildings]);
 
   // Feed route line to MapLibre GeoJSON source
   useEffect(() => {

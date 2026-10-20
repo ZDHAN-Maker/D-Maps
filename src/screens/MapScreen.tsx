@@ -364,6 +364,7 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     t(`category.${p.c}`, { defaultValue: p.c }) + (p.c === 'hospital' && p.em === 'no' ? ` · ${t('search.noEmergency')}` : '');
 
   const installed = regions.installed.filter((d) => d.status === 'complete');
+  const hasTestFixture = installed.some((d) => d.id === 'monaco' || (d.manifest as { testFixture?: boolean }).testFixture === true);
   const showHistory = hasData && !query.trim() && !category && (history.queries.length > 0 || history.destinations.length > 0);
 
   return (
@@ -387,7 +388,7 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
                   ? t('data.ready', { name: installed[0].name, version: installed[0].dataVersion, size: formatBytes(installed[0].totalBytes, lang) })
                   : t('data.readyMany', { names: installed.map((d) => d.name).join(', '), count: installed.length, size: formatBytes(installed.reduce((s, d) => s + d.totalBytes, 0), lang) })}
               </p>
-              <p className="note">{t('data.notIndonesia')}</p>
+              {hasTestFixture && <p className="note">{t('data.notIndonesia')}</p>}
               <div className="row">
                 <button type="button" className="secondary" data-testid="manage-btn" onClick={() => goTo('regions')}>{t('data.manage')}</button>
               </div>

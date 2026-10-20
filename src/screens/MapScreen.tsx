@@ -59,11 +59,11 @@ class MapErrorBoundary extends Component<MapErrorBoundaryProps, { hasError: bool
   static getDerivedStateFromError() {
     return { hasError: true };
   }
-  componentDidCatch(error: Error) {
+  override componentDidCatch(error: Error) {
     console.warn('MapLibre error caught by boundary:', error);
     this.props.onError();
   }
-  render() {
+  override render() {
     if (this.state.hasError) {
       return null;
     }

@@ -78,6 +78,8 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
   const fromMarkerRef = useRef<Marker | null>(null);
   const toMarkerRef = useRef<Marker | null>(null);
   const fittedKey = useRef('');
+  const fittedRouteRef = useRef<string | null>(null);
+  const hasBuildingDataRef = useRef(false);
   const [pitch3D, setPitch3D] = useState(false);
   const [bearing, setBearing] = useState(0);
 
@@ -137,9 +139,18 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
 
     puckRef.current = new MapLibrePositionPuck(map);
 
+    const handleUserInteraction = (e: { originalEvent?: unknown }) => {
+      if (e?.originalEvent) {
+        onUserDrag();
+      }
+    };
+
     map.on('dragstart', () => {
       onUserDrag();
     });
+    map.on('zoomstart', handleUserInteraction);
+    map.on('rotatestart', handleUserInteraction);
+    map.on('pitchstart', handleUserInteraction);
 
     map.on('rotate', () => {
       setBearing(Math.round(map.getBearing()));
@@ -172,7 +183,7 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       syncRoute();
     });
 
-    map.on('styledata', () => {
+    map.on('style.load', () => {
       syncFeatures();
       syncBuildings();
       syncRoute();
@@ -271,7 +282,10 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
 
     const zoom = map.getZoom();
     if (zoom < 14.5) {
-      source.setData({ type: 'FeatureCollection', features: [] });
+      if (hasBuildingDataRef.current) {
+        source.setData({ type: 'FeatureCollection', features: [] });
+        hasBuildingDataRef.current = false;
+      }
       return;
     }
 
@@ -300,6 +314,7 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       type: 'FeatureCollection',
       features: buildingFeatures,
     });
+    hasBuildingDataRef.current = buildingFeatures.length > 0;
   }, []);
 
   const syncRoute = useCallback(() => {
@@ -326,22 +341,27 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       });
 
       if (!navigating && coords.length >= 2) {
-        let minLon = coords[0][0], maxLon = coords[0][0];
-        let minLat = coords[0][1], maxLat = coords[0][1];
-        for (let i = 1; i < coords.length; i++) {
-          const [lon, lat] = coords[i];
-          if (lon < minLon) minLon = lon;
-          if (lon > maxLon) maxLon = lon;
-          if (lat < minLat) minLat = lat;
-          if (lat > maxLat) maxLat = lat;
+        const routeKey = `${coords.length}:${coords[0].join(',')}-${coords[coords.length - 1].join(',')}`;
+        if (routeKey !== fittedRouteRef.current) {
+          fittedRouteRef.current = routeKey;
+          let minLon = coords[0][0], maxLon = coords[0][0];
+          let minLat = coords[0][1], maxLat = coords[0][1];
+          for (let i = 1; i < coords.length; i++) {
+            const [lon, lat] = coords[i];
+            if (lon < minLon) minLon = lon;
+            if (lon > maxLon) maxLon = lon;
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+          }
+          const bounds: LngLatBoundsLike = [
+            [minLon, minLat],
+            [maxLon, maxLat],
+          ];
+          map.fitBounds(bounds, { padding: 50, duration: 800 });
         }
-        const bounds: LngLatBoundsLike = [
-          [minLon, minLat],
-          [maxLon, maxLat],
-        ];
-        map.fitBounds(bounds, { padding: 50, duration: 800 });
       }
     } else {
+      fittedRouteRef.current = null;
       source.setData({ type: 'FeatureCollection', features: [] });
     }
   }, [navigating]);
@@ -419,28 +439,19 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
 
     puckRef.current?.update(fix, stale);
 
-    if (following) {
-      if (navigating) {
-        // Google Maps Navigation 3D driving mode: auto-rotate heading + 50° pitch tilt!
-        const targetBearing = fix.heading !== null && fix.heading !== undefined && Number.isFinite(fix.heading)
-          ? fix.heading
-          : map.getBearing();
+    if (following && navigating) {
+      // Google Maps Navigation 3D driving mode: auto-rotate heading + 50° pitch tilt!
+      const targetBearing = fix.heading !== null && fix.heading !== undefined && Number.isFinite(fix.heading)
+        ? fix.heading
+        : map.getBearing();
 
-        map.easeTo({
-          center: [fix.lon, fix.lat],
-          zoom: Math.max(map.getZoom(), 17),
-          bearing: targetBearing,
-          pitch: 50,
-          duration: 350,
-        });
-      } else {
-        // Standard 2D follow
-        map.easeTo({
-          center: [fix.lon, fix.lat],
-          zoom: Math.max(map.getZoom(), 16),
-          duration: 350,
-        });
-      }
+      map.easeTo({
+        center: [fix.lon, fix.lat],
+        zoom: Math.max(map.getZoom(), 17),
+        bearing: targetBearing,
+        pitch: 50,
+        duration: 350,
+      });
     }
   }, [fix, stale, following, navigating]);
 

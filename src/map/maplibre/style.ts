@@ -107,7 +107,7 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
         type: 'fill-extrusion',
         source: 'features',
         filter: ['==', ['get', 'type'], 'building'],
-        minzoom: 15,
+        minzoom: 16,
         paint: {
           'fill-extrusion-color': pal.buildingFill,
           'fill-extrusion-height': 8,
@@ -120,7 +120,7 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
         type: 'fill-extrusion',
         source: 'buildings',
         filter: ['==', ['get', 'type'], 'building'],
-        minzoom: 15,
+        minzoom: 16,
         paint: {
           'fill-extrusion-color': pal.buildingFill,
           'fill-extrusion-height': 8,

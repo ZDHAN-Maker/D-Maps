@@ -1073,14 +1073,14 @@ ul.plain {
 
 
 /* ==========================================================================
-   High-Visibility Location Labels & POI Badges (Google Maps Style)
+   Google Maps Style POI & Location Badges (Gambar 2 Reference)
    ========================================================================== */
 .dmaps-maplibre-label-wrapper {
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  white-space: nowrap;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
 }
 
 .dmaps-leaflet-divicon {
@@ -1090,145 +1090,163 @@ ul.plain {
   overflow: visible !important;
 }
 
-.dmaps-poi-badge {
+/* POI Marker (Google Maps authentic circle icon + floating text) */
+.dmaps-gm-poi {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 4px 11px 4px 6px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease;
-  line-height: 1.2;
+  white-space: nowrap;
+  transition: transform 0.15s ease;
 }
 
-.dmaps-poi-badge:hover {
-  transform: scale(1.1) translateY(-2px);
+.dmaps-gm-poi:hover {
+  transform: scale(1.12);
   z-index: 9999 !important;
 }
 
-.dmaps-poi-badge.dark {
-  background: rgba(15, 23, 42, 0.94);
-  color: #F8FAFC;
-  border: 1.5px solid rgba(255, 255, 255, 0.24);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65), 0 1px 3px rgba(0, 0, 0, 0.4);
-}
-
-.dmaps-poi-badge.light {
-  background: rgba(255, 255, 255, 0.96);
-  color: #0F172A;
-  border: 1.5px solid rgba(0, 0, 0, 0.14);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16), 0 1px 3px rgba(15, 23, 42, 0.08);
-}
-
-.poi-icon-circle {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
+.gm-poi-icon {
+  width: 19px;
+  height: 19px;
+  min-width: 19px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  font-size: 11px;
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1.5px 4px rgba(0, 0, 0, 0.35);
+  flex-shrink: 0;
 }
 
-.poi-text {
-  font-size: 13px;
+.gm-poi-text {
+  font-size: 11.5px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 
-/* Street Name Badge */
-.dmaps-street-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 9px 3px 6px;
-  border-radius: 8px;
-  font-size: 12.5px;
+.dmaps-gm-poi.light .gm-poi-text {
+  text-shadow:
+    -1px -1px 0 #FFFFFF,
+     1px -1px 0 #FFFFFF,
+    -1px  1px 0 #FFFFFF,
+     1px  1px 0 #FFFFFF,
+     0px  0px 3px #FFFFFF,
+     0px  0px 4px #FFFFFF;
+}
+
+.dmaps-gm-poi.dark .gm-poi-text {
+  text-shadow:
+    -1px -1px 0 #0B1120,
+     1px -1px 0 #0B1120,
+    -1px  1px 0 #0B1120,
+     1px  1px 0 #0B1120,
+     0px  0px 4px #0B1120,
+     0px  0px 6px #0B1120;
+}
+
+/* Street Name (Google Maps: pure road text, NO icon, NO box) */
+.dmaps-gm-street {
+  display: inline-block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
+  letter-spacing: -0.01em;
   transition: transform 0.15s ease;
-  line-height: 1.2;
 }
 
-.dmaps-street-badge:hover {
+.dmaps-gm-street:hover {
   transform: scale(1.08);
   z-index: 9999 !important;
 }
 
-.dmaps-street-badge.dark {
-  background: rgba(30, 41, 59, 0.95);
-  color: #F1F5F9;
-  border: 1.5px solid #475569;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+.dmaps-gm-street.light {
+  color: #4B5563;
+  text-shadow:
+    -1px -1px 0 #FFFFFF,
+     1px -1px 0 #FFFFFF,
+    -1px  1px 0 #FFFFFF,
+     1px  1px 0 #FFFFFF,
+     0px  0px 3px #FFFFFF,
+     0px  0px 4px #FFFFFF;
 }
 
-.dmaps-street-badge.light {
-  background: rgba(248, 250, 252, 0.96);
-  color: #1E293B;
-  border: 1.5px solid #CBD5E1;
-  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.14);
+.dmaps-gm-street.dark {
+  color: #CBD5E1;
+  text-shadow:
+    -1px -1px 0 #0B1120,
+     1px -1px 0 #0B1120,
+    -1px  1px 0 #0B1120,
+     1px  1px 0 #0B1120,
+     0px  0px 4px #0B1120,
+     0px  0px 6px #0B1120;
 }
 
-.street-icon-circle {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  background: #2563EB;
-  color: #FFFFFF;
+/* Saved Location / Bookmark (Google Maps Red Pin + Floating Text) */
+.dmaps-gm-bookmark {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 11px;
-}
-
-.street-text {
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-/* Bookmark Pin Badge */
-.dmaps-bookmark-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 13px 5px 8px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-  color: #FFFFFF;
-  font-size: 13px;
-  font-weight: 700;
-  border: 2px solid #FFFFFF;
-  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.6), 0 2px 4px rgba(0, 0, 0, 0.25);
-  white-space: nowrap;
-  cursor: pointer;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
   pointer-events: auto;
+  cursor: pointer;
   user-select: none;
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  line-height: 1.2;
+  white-space: nowrap;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.dmaps-bookmark-badge:hover {
-  transform: scale(1.12) translateY(-2px);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.75);
+.dmaps-gm-bookmark:hover {
+  transform: scale(1.15) translateY(-2px);
+  z-index: 9999 !important;
 }
 
-.bookmark-star {
-  font-size: 14px;
-  color: #FEF08A;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+.gm-pin-icon {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  flex-shrink: 0;
 }
 
-.bookmark-text {
-  font-size: 13px;
+.gm-bookmark-text {
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+.dmaps-gm-bookmark.light .gm-bookmark-text {
+  color: #B91C1C;
+  text-shadow:
+    -1px -1px 0 #FFFFFF,
+     1px -1px 0 #FFFFFF,
+    -1px  1px 0 #FFFFFF,
+     1px  1px 0 #FFFFFF,
+     0px  0px 3px #FFFFFF,
+     0px  0px 4px #FFFFFF;
+}
+
+.dmaps-gm-bookmark.dark .gm-bookmark-text {
+  color: #FCA5A5;
+  text-shadow:
+    -1px -1px 0 #0B1120,
+     1px -1px 0 #0B1120,
+    -1px  1px 0 #0B1120,
+     1px  1px 0 #0B1120,
+     0px  0px 4px #0B1120,
+     0px  0px 6px #0B1120;
 }

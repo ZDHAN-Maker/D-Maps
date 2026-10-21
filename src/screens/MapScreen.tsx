@@ -25,7 +25,7 @@ import { formatBytes } from '../lib/format';
 import type { Lang } from '../routing/describe';
 import type { Tab } from '../App';
 
-const BUILDING_MIN_ZOOM = 15;
+const BUILDING_MIN_ZOOM = 16.5;
 
 interface Point extends LatLon { label: string }
 
@@ -323,8 +323,8 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     for (const bm of bookmarks) {
       const icon = L.divIcon({
         className: 'dmaps-leaflet-divicon',
-        html: createBookmarkBadgeHtml(bm.name),
-        iconAnchor: [12, 16],
+        html: createBookmarkBadgeHtml(bm.name, theme),
+        iconAnchor: [11, 24],
       });
       const marker = L.marker([bm.lat, bm.lon], { icon });
       marker.on('click', () => {
@@ -359,11 +359,23 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
         }
         if (places.length >= 50) break;
       }
+      const chosenPlaces: PlaceRecord[] = [];
       for (const p of places) {
+        const collides = chosenPlaces.some((cp) => {
+          const dLat = Math.abs(cp.la - p.la);
+          const dLon = Math.abs(cp.lo - p.lo);
+          return dLat < 0.0022 && dLon < 0.0028;
+        });
+        if (!collides) {
+          chosenPlaces.push(p);
+          if (chosenPlaces.length >= 22) break;
+        }
+      }
+      for (const p of chosenPlaces) {
         const icon = L.divIcon({
           className: 'dmaps-leaflet-divicon',
           html: createPlaceBadgeHtml(p.n, p.k, p.c, theme),
-          iconAnchor: [12, 14],
+          iconAnchor: [10, 10],
         });
         const m = L.marker([p.la, p.lo], { icon });
         m.on('click', () => {

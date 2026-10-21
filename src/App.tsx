@@ -41,9 +41,21 @@ function Shell() {
   return (
     <div className={`shell${navigating ? ' shell-navigating' : ''}`}>
       <header className="topbar">
-        <img src={`${import.meta.env.BASE_URL}icons/dmaps-icon.svg`} alt="" width={32} height={32} />
-        <strong className="name">D’Maps <span className="badge">{t('poc')}</span></strong>
+        <div className="brand-group">
+          <img
+            src={`${import.meta.env.BASE_URL}icons/dmaps-icon.svg`}
+            alt="D'Maps Logo"
+            className="brand-logo"
+            width={38}
+            height={38}
+          />
+          <div className="brand-titles">
+            <strong className="name">D’Maps <span className="badge">{t('poc')}</span></strong>
+            <span className="brand-tagline">Offline GPS Navigation OS</span>
+          </div>
+        </div>
         <span className={`status ${online ? 'on' : 'off'}`} data-testid="net-status" role="status">
+          <span className="status-dot" aria-hidden />
           {online ? <Wifi size={16} aria-hidden /> : <WifiOff size={16} aria-hidden />}
           {online ? t('status.online') : t('status.offline')}
         </span>

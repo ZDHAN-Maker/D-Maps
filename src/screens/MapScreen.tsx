@@ -13,6 +13,7 @@ import type { PlaceRecord } from '../search';
 import { clearHistory, getHistory, recordDestination, recordQuery, subscribeHistory, type History } from '../search/history';
 import { getBookmarks, saveBookmark, removeBookmark, type Bookmark } from '../storage/bookmarks';
 import { buildFeatureLayers, PALETTES, type FeatureLayers } from '../map/features';
+import { createPlaceBadgeHtml, createBookmarkBadgeHtml } from '../map/badges';
 import { DeviceGps, type Fix, type GpsError } from '../gps';
 import { PositionMarker } from '../map/position';
 import NavigationView, { stepIcon } from '../nav/NavigationView';
@@ -35,8 +36,8 @@ const CATEGORY_ICON: Record<string, LucideIcon> = {
 const CHIPS = ['hospital', 'pharmacy', 'fuel', 'restaurant', 'hotel', 'atm', 'attraction'] as const;
 
 const OVERLAY = {
-  light: { line: '#0F4C5C', casing: '#FFFFFF', dotStroke: '#24424F', from: '#B9F3D0', to: '#FF9D91' },
-  dark: { line: '#8DD9F5', casing: '#0B1418', dotStroke: '#E8F1F4', from: '#6FD3A0', to: '#FF9D91' },
+  light: { line: '#2563EB', casing: '#FFFFFF', dotStroke: '#0F172A', from: '#10B981', to: '#EF4444' },
+  dark: { line: '#00F0FF', casing: '#020617', dotStroke: '#FFFFFF', from: '#34D399', to: '#F43F5E' },
 } as const;
 
 interface Props {
@@ -321,10 +322,9 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     layer.clearLayers();
     for (const bm of bookmarks) {
       const icon = L.divIcon({
-        className: 'dmaps-leaflet-bookmark',
-        html: `<div style="display:flex;align-items:center;gap:3px;background:#F59E0B;color:#fff;padding:2px 7px;border-radius:12px;font-size:11px;font-weight:bold;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,0.3);white-space:nowrap;cursor:pointer;"><span>★</span><span>${bm.name}</span></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
+        className: 'dmaps-leaflet-divicon',
+        html: createBookmarkBadgeHtml(bm.name),
+        iconAnchor: [12, 16],
       });
       const marker = L.marker([bm.lat, bm.lon], { icon });
       marker.on('click', () => {
@@ -353,19 +353,17 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
           for (const p of r.places) {
             if (p.la >= minLa && p.la <= maxLa && p.lo >= minLo && p.lo <= maxLo) {
               places.push(p);
-              if (places.length >= 35) break;
+              if (places.length >= 50) break;
             }
           }
         }
-        if (places.length >= 35) break;
+        if (places.length >= 50) break;
       }
       for (const p of places) {
-        const isStreet = p.k === 'street';
         const icon = L.divIcon({
-          className: 'dmaps-leaflet-place',
-          html: `<div style="font-size:${isStreet ? '11px' : '10px'};font-weight:${isStreet ? '600' : '500'};color:${isStreet ? '#1E293B' : '#2563EB'};text-shadow:0 0 3px #fff,0 0 3px #fff;white-space:nowrap;cursor:pointer;">${isStreet ? '🛣️ ' : '📍 '}${p.n}</div>`,
-          iconSize: [20, 14],
-          iconAnchor: [10, 7],
+          className: 'dmaps-leaflet-divicon',
+          html: createPlaceBadgeHtml(p.n, p.k, p.c, theme),
+          iconAnchor: [12, 14],
         });
         const m = L.marker([p.la, p.lo], { icon });
         m.on('click', () => {

@@ -21,6 +21,7 @@ function getBuildingIndex(f: FeaturesFile): BuildingSpatialIndex {
 }
 import { registerPMTilesProtocol } from './pmtilesProtocol';
 import { MapLibrePositionPuck } from './positionPuck';
+import { createPlaceBadgeHtml, createBookmarkBadgeHtml } from '../badges';
 import type { RegionRuntime } from '../../regions/regionSet';
 import type { Fix } from '../../gps';
 import type { RouteResult } from '../../routing';
@@ -399,7 +400,7 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     const minLat = bounds.getSouth(), maxLat = bounds.getNorth();
 
     const currentRegions = regionsRef.current;
-    const visiblePlaces: { name: string; lat: number; lon: number; kind: string }[] = [];
+    const visiblePlaces: { name: string; lat: number; lon: number; kind: string; category?: string }[] = [];
     const seen = new Set<string>();
 
     for (const r of currentRegions) {
@@ -409,13 +410,13 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
             const key = `${p.n}:${p.la.toFixed(4)},${p.lo.toFixed(4)}`;
             if (!seen.has(key)) {
               seen.add(key);
-              visiblePlaces.push({ name: p.n, lat: p.la, lon: p.lo, kind: p.k });
-              if (visiblePlaces.length >= 35) break;
+              visiblePlaces.push({ name: p.n, lat: p.la, lon: p.lo, kind: p.k, category: p.c });
+              if (visiblePlaces.length >= 50) break;
             }
           }
         }
       }
-      if (visiblePlaces.length >= 35) break;
+      if (visiblePlaces.length >= 50) break;
     }
 
     for (const m of placeMarkersRef.current) m.remove();
@@ -424,19 +425,8 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     const isDark = theme === 'dark';
     for (const vp of visiblePlaces) {
       const el = document.createElement('div');
-      el.className = `dmaps-label dmaps-label-${vp.kind}`;
-      el.style.fontSize = vp.kind === 'street' ? '11px' : '10px';
-      el.style.fontWeight = vp.kind === 'street' ? '600' : '500';
-      el.style.color = vp.kind === 'street' ? (isDark ? '#F1F5F9' : '#1E293B') : (isDark ? '#93C5FD' : '#1D4ED8');
-      el.style.textShadow = isDark
-        ? '0 0 3px #0F172A, 0 0 3px #0F172A, 0 0 4px #0F172A'
-        : '0 0 3px #FFFFFF, 0 0 3px #FFFFFF, 0 0 4px #FFFFFF';
-      el.style.pointerEvents = 'auto';
-      el.style.cursor = 'pointer';
-      el.style.whiteSpace = 'nowrap';
-      el.style.padding = '1px 4px';
-      el.style.borderRadius = '4px';
-      el.textContent = (vp.kind === 'street' ? '🛣️ ' : '📍 ') + vp.name;
+      el.className = 'dmaps-maplibre-label-wrapper';
+      el.innerHTML = createPlaceBadgeHtml(vp.name, vp.kind, vp.category, isDark ? 'dark' : 'light');
       el.title = vp.name;
       el.onclick = (e) => {
         e.stopPropagation();
@@ -456,20 +446,8 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
 
     for (const bm of bookmarks) {
       const el = document.createElement('div');
-      el.className = 'dmaps-bookmark-marker';
-      el.style.display = 'flex';
-      el.style.alignItems = 'center';
-      el.style.gap = '4px';
-      el.style.padding = '3px 8px';
-      el.style.backgroundColor = '#F59E0B';
-      el.style.color = '#FFFFFF';
-      el.style.borderRadius = '14px';
-      el.style.fontSize = '11px';
-      el.style.fontWeight = '700';
-      el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)';
-      el.style.cursor = 'pointer';
-      el.style.border = '2px solid #FFFFFF';
-      el.innerHTML = `<span>★</span><span>${bm.name}</span>`;
+      el.className = 'dmaps-maplibre-label-wrapper';
+      el.innerHTML = createBookmarkBadgeHtml(bm.name);
       el.title = `${bm.name} (${bm.lat.toFixed(5)}, ${bm.lon.toFixed(5)})`;
       el.onclick = (e) => {
         e.stopPropagation();
@@ -508,12 +486,19 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       if (!fromMarkerRef.current) {
         const el = document.createElement('div');
         el.className = 'dmaps-ml-marker dmaps-ml-from';
-        el.style.width = '16px';
-        el.style.height = '16px';
-        el.style.backgroundColor = '#4CAF50';
+        el.style.width = '24px';
+        el.style.height = '24px';
+        el.style.background = 'linear-gradient(135deg, #10B981, #059669)';
         el.style.border = '3px solid #FFFFFF';
         el.style.borderRadius = '50%';
-        el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
+        el.style.boxShadow = '0 4px 12px rgba(16,185,129,0.6)';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.color = '#FFFFFF';
+        el.style.fontWeight = 'bold';
+        el.style.fontSize = '12px';
+        el.textContent = 'A';
         fromMarkerRef.current = new Marker({ element: el }).setLngLat([from.lon, from.lat]).addTo(map);
       } else {
         fromMarkerRef.current.setLngLat([from.lon, from.lat]);
@@ -528,12 +513,19 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       if (!toMarkerRef.current) {
         const el = document.createElement('div');
         el.className = 'dmaps-ml-marker dmaps-ml-to';
-        el.style.width = '18px';
-        el.style.height = '18px';
-        el.style.backgroundColor = '#E53935';
+        el.style.width = '26px';
+        el.style.height = '26px';
+        el.style.background = 'linear-gradient(135deg, #EF4444, #DC2626)';
         el.style.border = '3px solid #FFFFFF';
         el.style.borderRadius = '50%';
-        el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
+        el.style.boxShadow = '0 4px 14px rgba(239,68,68,0.65)';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.color = '#FFFFFF';
+        el.style.fontWeight = 'bold';
+        el.style.fontSize = '13px';
+        el.textContent = 'B';
         toMarkerRef.current = new Marker({ element: el }).setLngLat([to.lon, to.lat]).addTo(map);
       } else {
         toMarkerRef.current.setLngLat([to.lon, to.lat]);

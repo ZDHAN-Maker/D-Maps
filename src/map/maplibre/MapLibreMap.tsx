@@ -300,7 +300,7 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     if (!source) return;
 
     const zoom = map.getZoom();
-    if (zoom < 14.5) {
+    if (zoom < 15.8) {
       if (hasBuildingDataRef.current) {
         source.setData({ type: 'FeatureCollection', features: [] });
         hasBuildingDataRef.current = false;
@@ -321,10 +321,10 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     for (const r of currentRegions) {
       if (r.features && r.features.buildings.length > 5000) {
         const idx = getBuildingIndex(r.features);
-        const feats = idx.query(bbox, 3000);
+        const feats = idx.query(bbox, 1000);
         for (let i = 0; i < feats.length; i++) {
           buildingFeatures.push(feats[i]);
-          if (buildingFeatures.length >= 3000) break;
+          if (buildingFeatures.length >= 1000) break;
         }
       }
     }
@@ -390,7 +390,7 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     const map = mapRef.current;
     if (!map) return;
     const zoom = map.getZoom();
-    if (zoom < 13.5) {
+    if (zoom < 13.8) {
       for (const m of placeMarkersRef.current) m.remove();
       placeMarkersRef.current = [];
       return;
@@ -411,19 +411,33 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
             if (!seen.has(key)) {
               seen.add(key);
               visiblePlaces.push({ name: p.n, lat: p.la, lon: p.lo, kind: p.k, category: p.c });
-              if (visiblePlaces.length >= 50) break;
+              if (visiblePlaces.length >= 60) break;
             }
           }
         }
       }
-      if (visiblePlaces.length >= 50) break;
+      if (visiblePlaces.length >= 60) break;
+    }
+
+    // Google Maps Spatial Collision Culling (max 22 well-spaced places)
+    const chosenPlaces: typeof visiblePlaces = [];
+    for (const vp of visiblePlaces) {
+      const collides = chosenPlaces.some((cp) => {
+        const dLat = Math.abs(cp.lat - vp.lat);
+        const dLon = Math.abs(cp.lon - vp.lon);
+        return dLat < 0.0022 && dLon < 0.0028;
+      });
+      if (!collides) {
+        chosenPlaces.push(vp);
+        if (chosenPlaces.length >= 22) break;
+      }
     }
 
     for (const m of placeMarkersRef.current) m.remove();
     placeMarkersRef.current = [];
 
     const isDark = theme === 'dark';
-    for (const vp of visiblePlaces) {
+    for (const vp of chosenPlaces) {
       const el = document.createElement('div');
       el.className = 'dmaps-maplibre-label-wrapper';
       el.innerHTML = createPlaceBadgeHtml(vp.name, vp.kind, vp.category, isDark ? 'dark' : 'light');
@@ -447,7 +461,8 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     for (const bm of bookmarks) {
       const el = document.createElement('div');
       el.className = 'dmaps-maplibre-label-wrapper';
-      el.innerHTML = createBookmarkBadgeHtml(bm.name);
+      const isDark = theme === 'dark';
+      el.innerHTML = createBookmarkBadgeHtml(bm.name, isDark ? 'dark' : 'light');
       el.title = `${bm.name} (${bm.lat.toFixed(5)}, ${bm.lon.toFixed(5)})`;
       el.onclick = (e) => {
         e.stopPropagation();

@@ -4,13 +4,14 @@ import 'leaflet/dist/leaflet.css';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeftRight, Banknote, BedDouble, Clock, Database, Fuel, Hospital, Landmark, LocateFixed, MapPin, Navigation, Pill, Play,
-  Search, Trash2, TriangleAlert, UtensilsCrossed, type LucideIcon,
+  Search, Star, Bookmark as BookmarkIcon, Trash2, TriangleAlert, UtensilsCrossed, type LucideIcon,
 } from 'lucide-react';
 import {
   describeStep, formatDistance, formatDuration, type LatLon, type RouteError, type RouteResult,
 } from '../routing';
 import type { PlaceRecord } from '../search';
 import { clearHistory, getHistory, recordDestination, recordQuery, subscribeHistory, type History } from '../search/history';
+import { getBookmarks, saveBookmark, removeBookmark, type Bookmark } from '../storage/bookmarks';
 import { buildFeatureLayers, PALETTES, type FeatureLayers } from '../map/features';
 import { DeviceGps, type Fix, type GpsError } from '../gps';
 import { PositionMarker } from '../map/position';
@@ -104,6 +105,12 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
   const [locError, setLocError] = useState<string | null>(null);
   const [history, setHistory] = useState<History>({ queries: [], destinations: [] });
   const [historyNote, setHistoryNote] = useState<string | null>(null);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>(() => getBookmarks());
+  const [showBookmarkDialog, setShowBookmarkDialog] = useState(false);
+  const [bookmarkName, setBookmarkName] = useState('');
+  const [bookmarkTarget, setBookmarkTarget] = useState<Point | null>(null);
+  const bookmarksLayerRef = useRef<L.LayerGroup | null>(null);
+  const placesLayerRef = useRef<L.LayerGroup | null>(null);
 
   const hasDataRef = useRef(hasData);
   const pickRef = useRef(pick);
@@ -130,6 +137,8 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
         mapRef.current = null;
         posRef.current = null;
         overlayRef.current = null;
+        placesLayerRef.current = null;
+        bookmarksLayerRef.current = null;
         rendererRef.current = null;
         featureRef.current = [];
       }
@@ -141,6 +150,8 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     map.attributionControl.addAttribution('© OpenStreetMap contributors (ODbL)');
     rendererRef.current = L.canvas({ padding: 0.4 });
     overlayRef.current = L.layerGroup().addTo(map);
+    placesLayerRef.current = L.layerGroup().addTo(map);
+    bookmarksLayerRef.current = L.layerGroup().addTo(map);
 
     const updateFeatures = () => {
       const m = mapRef.current;
@@ -302,6 +313,72 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     }
   }, [shownFix, nav.stale, nav.phase, follow, isMapLibre]);
 
+  // Render bookmarks on Leaflet map
+  useEffect(() => {
+    if (isMapLibre) return;
+    const layer = bookmarksLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    for (const bm of bookmarks) {
+      const icon = L.divIcon({
+        className: 'dmaps-leaflet-bookmark',
+        html: `<div style="display:flex;align-items:center;gap:3px;background:#F59E0B;color:#fff;padding:2px 7px;border-radius:12px;font-size:11px;font-weight:bold;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,0.3);white-space:nowrap;cursor:pointer;"><span>★</span><span>${bm.name}</span></div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      });
+      const marker = L.marker([bm.lat, bm.lon], { icon });
+      marker.on('click', () => {
+        setPoint('to', { lat: bm.lat, lon: bm.lon, label: bm.name });
+      });
+      layer.addLayer(marker);
+    }
+  }, [bookmarks, isMapLibre, setPoint]);
+
+  // Render street and place names on Leaflet when zoom >= 14
+  useEffect(() => {
+    if (isMapLibre) return;
+    const map = mapRef.current;
+    const layer = placesLayerRef.current;
+    if (!map || !layer) return;
+    const updateLeafletPlaces = () => {
+      const z = map.getZoom();
+      layer.clearLayers();
+      if (z < 13.5) return;
+      const b = map.getBounds();
+      const minLo = b.getWest(), maxLo = b.getEast();
+      const minLa = b.getSouth(), maxLa = b.getNorth();
+      const places: PlaceRecord[] = [];
+      for (const r of regionSet.regions) {
+        if (r.places) {
+          for (const p of r.places) {
+            if (p.la >= minLa && p.la <= maxLa && p.lo >= minLo && p.lo <= maxLo) {
+              places.push(p);
+              if (places.length >= 35) break;
+            }
+          }
+        }
+        if (places.length >= 35) break;
+      }
+      for (const p of places) {
+        const isStreet = p.k === 'street';
+        const icon = L.divIcon({
+          className: 'dmaps-leaflet-place',
+          html: `<div style="font-size:${isStreet ? '11px' : '10px'};font-weight:${isStreet ? '600' : '500'};color:${isStreet ? '#1E293B' : '#2563EB'};text-shadow:0 0 3px #fff,0 0 3px #fff;white-space:nowrap;cursor:pointer;">${isStreet ? '🛣️ ' : '📍 '}${p.n}</div>`,
+          iconSize: [20, 14],
+          iconAnchor: [10, 7],
+        });
+        const m = L.marker([p.la, p.lo], { icon });
+        m.on('click', () => {
+          setPoint('to', { lat: p.la, lon: p.lo, label: p.n });
+        });
+        layer.addLayer(m);
+      }
+    };
+    map.on('moveend', updateLeafletPlaces);
+    updateLeafletPlaces();
+    return () => { map.off('moveend', updateLeafletPlaces); };
+  }, [isMapLibre, regionSet, setPoint]);
+
   // the map changes size when the navigation overlay replaces the side panel
   useEffect(() => {
     if (!isMapLibre) {
@@ -323,6 +400,26 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
     map.setView([lat, lon], z);
   };
   const asPoint = (p: PlaceRecord): Point => ({ lat: p.la, lon: p.lo, label: p.n });
+
+  const handleMaplibreError = useCallback(() => {
+    setMaplibreFailed(true);
+  }, []);
+
+  const handleUserDrag = useCallback(() => {
+    setFollow(false);
+  }, []);
+
+  const handleCenterChange = useCallback((c: { lat: number; lon: number }) => {
+    if (Number.isFinite(c.lat) && Number.isFinite(c.lon)) {
+      setCenter(c);
+    }
+  }, []);
+
+  const handleMapClick = useCallback((lat: number, lon: number) => {
+    if (!hasDataRef.current || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
+    const label = `${t('route.mapPoint')} (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+    setPoint(pickRef.current, { lat, lon, label });
+  }, [t, setPoint]);
   const choose = (which: 'from' | 'to', p: PlaceRecord) => {
     setPoint(which, asPoint(p));
     void recordQuery(query);
@@ -478,7 +575,64 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
             <button type="button" className="secondary" data-testid="locate-me" disabled={!hasData || locating} onClick={locateMe}>
               <LocateFixed size={16} aria-hidden /> {locating ? t('route.locating') : t('route.useMyLocation')}
             </button>
+            <button
+              type="button"
+              className="secondary"
+              data-testid="bookmark-btn"
+              disabled={!hasData}
+              onClick={() => {
+                const target = from || to || (myFix ? { lat: myFix.lat, lon: myFix.lon, label: t('route.myLocation') } : center ? { lat: center.lat, lon: center.lon, label: t('route.mapPoint') } : null);
+                if (target) {
+                  setBookmarkTarget(target);
+                  setBookmarkName(target.label || '');
+                  setShowBookmarkDialog(true);
+                }
+              }}
+            >
+              <BookmarkIcon size={16} aria-hidden /> {t('bookmarks.save', { defaultValue: 'Tandai Lokasi' })}
+            </button>
           </div>
+
+          {showBookmarkDialog && bookmarkTarget && (
+            <div style={{ border: '2px solid #F59E0B', padding: '12px', marginTop: '8px', borderRadius: '8px', background: theme === 'dark' ? '#1E293B' : '#FFFBEB' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Star size={16} color="#F59E0B" fill="#F59E0B" /> {t('bookmarks.dialogTitle', { defaultValue: 'Simpan Penanda Lokasi' })}
+              </h3>
+              <p style={{ margin: '0 0 8px 0', fontSize: '12px', opacity: 0.8 }}>
+                {t('bookmarks.coord', { defaultValue: 'Koordinat' })}: {bookmarkTarget.lat.toFixed(5)}, {bookmarkTarget.lon.toFixed(5)}
+              </p>
+              <input
+                type="text"
+                placeholder="Nama lokasi (misal: Lokasi A, Rumah, Toko)"
+                value={bookmarkName}
+                onChange={(e) => setBookmarkName(e.target.value)}
+                style={{ width: '100%', padding: '8px', marginBottom: '8px', borderRadius: '6px', border: '1px solid #CBD5E1' }}
+                autoFocus
+              />
+              <div className="row">
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => {
+                    saveBookmark(bookmarkName || 'Lokasi Tersimpan', bookmarkTarget.lat, bookmarkTarget.lon);
+                    setBookmarks(getBookmarks());
+                    setShowBookmarkDialog(false);
+                    setBookmarkName('');
+                    setBookmarkTarget(null);
+                  }}
+                >
+                  {t('bookmarks.saveBtn', { defaultValue: 'Simpan Penanda' })}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => { setShowBookmarkDialog(false); setBookmarkTarget(null); }}
+                >
+                  {t('route.clear', { defaultValue: 'Batal' })}
+                </button>
+              </div>
+            </div>
+          )}
           {locError && <p className="error" role="alert" data-testid="loc-error"><TriangleAlert size={16} aria-hidden /> {locError}</p>}
           {hasData && <p className="note">{t('route.pickHint', { which: pick === 'from' ? t('route.from').toLowerCase() : t('route.to').toLowerCase() })}</p>}
           <div className="row">
@@ -517,6 +671,37 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
             </>
           )}
         </section>
+        {bookmarks.length > 0 && (
+          <section className="card" aria-labelledby="bookmarks-h">
+            <h2 id="bookmarks-h" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Star size={18} aria-hidden color="#F59E0B" fill="#F59E0B" /> {t('bookmarks.title', { defaultValue: 'Lokasi Tersimpan' })} ({bookmarks.length})
+            </h2>
+            <ul className="results" data-testid="bookmarks-list">
+              {bookmarks.map((bm) => (
+                <li key={bm.id}>
+                  <button type="button" className="result-main" onClick={() => focusLatLon(bm.lat, bm.lon)}>
+                    <Star size={16} aria-hidden color="#F59E0B" fill="#F59E0B" />
+                    <span>
+                      <strong>{bm.name}</strong>
+                      <small>{bm.lat.toFixed(5)}, {bm.lon.toFixed(5)}</small>
+                    </span>
+                  </button>
+                  <div className="row">
+                    <button type="button" className="chip" onClick={() => setPoint('to', { lat: bm.lat, lon: bm.lon, label: bm.name })}>
+                      {t('route.to')}
+                    </button>
+                    <button type="button" className="chip" onClick={() => setPoint('from', { lat: bm.lat, lon: bm.lon, label: bm.name })}>
+                      {t('route.from')}
+                    </button>
+                    <button type="button" className="chip danger" title="Hapus" onClick={() => setBookmarks(removeBookmark(bm.id))}>
+                      <Trash2 size={12} aria-hidden />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <footer className="attr">{t('attribution')}</footer>
       </aside>
       <div className="map" ref={mapEl} role="application" aria-label={t('mapLabel')} data-testid="map">
@@ -534,18 +719,11 @@ export default function MapScreen({ online, active, goTo, onNavigatingChange }: 
               navigating={navigating}
               following={follow}
               active={active}
-              onMapClick={(lat, lon) => {
-                if (!hasDataRef.current || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
-                const label = `${t('route.mapPoint')} (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
-                setPoint(pickRef.current, { lat, lon, label });
-              }}
-              onUserDrag={() => setFollow(false)}
-              onCenterChange={(c) => {
-                if (Number.isFinite(c.lat) && Number.isFinite(c.lon)) {
-                  setCenter(c);
-                }
-              }}
-              onError={() => setMaplibreFailed(true)}
+              bookmarks={bookmarks}
+              onMapClick={handleMapClick}
+              onUserDrag={handleUserDrag}
+              onCenterChange={handleCenterChange}
+              onError={handleMaplibreError}
             />
           </MapErrorBoundary>
         )}

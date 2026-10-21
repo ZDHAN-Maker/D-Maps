@@ -27,5 +27,5 @@ export async function loadRegion(id: string): Promise<{ record: DatasetRecord; r
   const engine = new RoutingEngine(graph, { bbox, turns });
   const index = new SearchIndex(places);
   await yieldToMain();
-  return { record, runtime: { id, name: record.name, bbox, engine, index, features } };
+  return { record, runtime: { id, name: record.name, bbox, engine, index, features, places } };
 }

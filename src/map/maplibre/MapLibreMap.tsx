@@ -24,6 +24,7 @@ import { MapLibrePositionPuck } from './positionPuck';
 import type { RegionRuntime } from '../../regions/regionSet';
 import type { Fix } from '../../gps';
 import type { RouteResult } from '../../routing';
+import type { Bookmark } from '../../storage/bookmarks';
 
 export interface Point {
   lat: number;
@@ -46,6 +47,7 @@ interface Props {
   navigating: boolean;
   following: boolean;
   active?: boolean;
+  bookmarks?: Bookmark[];
   onMapClick(lat: number, lon: number): void;
   onUserDrag(): void;
   onRecenter?(): void;
@@ -65,6 +67,7 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     navigating,
     following,
     active = true,
+    bookmarks = [],
     onMapClick,
     onUserDrag,
     onCenterChange,
@@ -77,6 +80,16 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
   const puckRef = useRef<MapLibrePositionPuck | null>(null);
   const fromMarkerRef = useRef<Marker | null>(null);
   const toMarkerRef = useRef<Marker | null>(null);
+  const bookmarkMarkersRef = useRef<Marker[]>([]);
+  const placeMarkersRef = useRef<Marker[]>([]);
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+  const onUserDragRef = useRef(onUserDrag);
+  onUserDragRef.current = onUserDrag;
+  const onCenterChangeRef = useRef(onCenterChange);
+  onCenterChangeRef.current = onCenterChange;
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
   const fittedKey = useRef('');
   const fittedRouteRef = useRef<string | null>(null);
   const hasBuildingDataRef = useRef(false);
@@ -126,7 +139,7 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       });
     } catch (err) {
       console.error('Failed to initialize MapLibre GL map:', err);
-      onError?.();
+      onErrorRef.current?.();
       return;
     }
 
@@ -141,12 +154,12 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
 
     const handleUserInteraction = (e: { originalEvent?: unknown }) => {
       if (e?.originalEvent) {
-        onUserDrag();
+        onUserDragRef.current();
       }
     };
 
     map.on('dragstart', () => {
-      onUserDrag();
+      onUserDragRef.current();
     });
     map.on('zoomstart', handleUserInteraction);
     map.on('rotatestart', handleUserInteraction);
@@ -164,16 +177,17 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       try {
         const c = map.getCenter();
         if (Number.isFinite(c.lat) && Number.isFinite(c.lng)) {
-          onCenterChange?.({ lat: c.lat, lon: c.lng });
+          onCenterChangeRef.current?.({ lat: c.lat, lon: c.lng });
         }
       } catch {
         /* ignore */
       }
       syncBuildings();
+      syncLabels();
     });
 
     map.on('click', (e) => {
-      onMapClick(e.lngLat.lat, e.lngLat.lng);
+      onMapClickRef.current(e.lngLat.lat, e.lngLat.lng);
     });
 
     map.on('load', () => {
@@ -181,12 +195,14 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       syncFeatures();
       syncBuildings();
       syncRoute();
+      syncLabels();
     });
 
     map.on('style.load', () => {
       syncFeatures();
       syncBuildings();
       syncRoute();
+      syncLabels();
     });
 
     mapRef.current = map;
@@ -196,10 +212,12 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       puckRef.current?.remove();
       fromMarkerRef.current?.remove();
       toMarkerRef.current?.remove();
+      for (const m of bookmarkMarkersRef.current) m.remove();
+      for (const m of placeMarkersRef.current) m.remove();
       map.remove();
       mapRef.current = null;
     };
-  }, [onError]);
+  }, []);
 
   // Resize on active tab or navigation view change
   useEffect(() => {
@@ -366,14 +384,111 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     }
   }, [navigating]);
 
+  // Street & Place labels on MapLibre (Google Maps style)
+  const syncLabels = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const zoom = map.getZoom();
+    if (zoom < 13.5) {
+      for (const m of placeMarkersRef.current) m.remove();
+      placeMarkersRef.current = [];
+      return;
+    }
+    const bounds = map.getBounds();
+    const minLon = bounds.getWest(), maxLon = bounds.getEast();
+    const minLat = bounds.getSouth(), maxLat = bounds.getNorth();
+
+    const currentRegions = regionsRef.current;
+    const visiblePlaces: { name: string; lat: number; lon: number; kind: string }[] = [];
+    const seen = new Set<string>();
+
+    for (const r of currentRegions) {
+      if (r.places) {
+        for (const p of r.places) {
+          if (p.la >= minLat && p.la <= maxLat && p.lo >= minLon && p.lo <= maxLon) {
+            const key = `${p.n}:${p.la.toFixed(4)},${p.lo.toFixed(4)}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              visiblePlaces.push({ name: p.n, lat: p.la, lon: p.lo, kind: p.k });
+              if (visiblePlaces.length >= 35) break;
+            }
+          }
+        }
+      }
+      if (visiblePlaces.length >= 35) break;
+    }
+
+    for (const m of placeMarkersRef.current) m.remove();
+    placeMarkersRef.current = [];
+
+    const isDark = theme === 'dark';
+    for (const vp of visiblePlaces) {
+      const el = document.createElement('div');
+      el.className = `dmaps-label dmaps-label-${vp.kind}`;
+      el.style.fontSize = vp.kind === 'street' ? '11px' : '10px';
+      el.style.fontWeight = vp.kind === 'street' ? '600' : '500';
+      el.style.color = vp.kind === 'street' ? (isDark ? '#F1F5F9' : '#1E293B') : (isDark ? '#93C5FD' : '#1D4ED8');
+      el.style.textShadow = isDark
+        ? '0 0 3px #0F172A, 0 0 3px #0F172A, 0 0 4px #0F172A'
+        : '0 0 3px #FFFFFF, 0 0 3px #FFFFFF, 0 0 4px #FFFFFF';
+      el.style.pointerEvents = 'auto';
+      el.style.cursor = 'pointer';
+      el.style.whiteSpace = 'nowrap';
+      el.style.padding = '1px 4px';
+      el.style.borderRadius = '4px';
+      el.textContent = (vp.kind === 'street' ? '🛣️ ' : '📍 ') + vp.name;
+      el.title = vp.name;
+      el.onclick = (e) => {
+        e.stopPropagation();
+        onMapClickRef.current(vp.lat, vp.lon);
+      };
+      const m = new Marker({ element: el }).setLngLat([vp.lon, vp.lat]).addTo(map);
+      placeMarkersRef.current.push(m);
+    }
+  }, [theme]);
+
+  // Saved location bookmarks on MapLibre
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    for (const m of bookmarkMarkersRef.current) m.remove();
+    bookmarkMarkersRef.current = [];
+
+    for (const bm of bookmarks) {
+      const el = document.createElement('div');
+      el.className = 'dmaps-bookmark-marker';
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+      el.style.gap = '4px';
+      el.style.padding = '3px 8px';
+      el.style.backgroundColor = '#F59E0B';
+      el.style.color = '#FFFFFF';
+      el.style.borderRadius = '14px';
+      el.style.fontSize = '11px';
+      el.style.fontWeight = '700';
+      el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)';
+      el.style.cursor = 'pointer';
+      el.style.border = '2px solid #FFFFFF';
+      el.innerHTML = `<span>★</span><span>${bm.name}</span>`;
+      el.title = `${bm.name} (${bm.lat.toFixed(5)}, ${bm.lon.toFixed(5)})`;
+      el.onclick = (e) => {
+        e.stopPropagation();
+        onMapClickRef.current(bm.lat, bm.lon);
+      };
+      const marker = new Marker({ element: el }).setLngLat([bm.lon, bm.lat]).addTo(map);
+      bookmarkMarkersRef.current.push(marker);
+    }
+  }, [bookmarks]);
+
   // Feed installed vector features to MapLibre GeoJSON source
   useEffect(() => {
     if (!active) return;
     if (isLoadedRef.current) {
       syncFeatures();
       syncBuildings();
+      syncLabels();
     }
-  }, [active, regions, syncFeatures, syncBuildings]);
+  }, [active, regions, syncFeatures, syncBuildings, syncLabels]);
 
   // Feed route line to MapLibre GeoJSON source
   useEffect(() => {

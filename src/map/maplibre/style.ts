@@ -4,9 +4,9 @@ import worldLand from './worldLand.json';
 
 export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpecification {
   const pal: Palette = PALETTES[theme];
-  const landColor = theme === 'dark' ? '#131C21' : '#F5F3ED';
-  const routeCasing = theme === 'dark' ? '#0B1418' : '#FFFFFF';
-  const routeLine = theme === 'dark' ? '#8DD9F5' : '#0F4C5C';
+  const landColor = theme === 'dark' ? '#0F172A' : '#F8FAFC';
+  const routeCasing = theme === 'dark' ? '#020617' : '#FFFFFF';
+  const routeLine = theme === 'dark' ? '#00F0FF' : '#2563EB';
 
   return {
     version: 8,

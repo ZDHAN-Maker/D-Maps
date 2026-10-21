@@ -111,10 +111,17 @@ export class InstallJob {
     this.wantPause = false;
     this.ctrl = new AbortController();
     this.set({ state: 'running', error: undefined, errorMessage: undefined });
+    let lastProgress = 0;
     this.running = installDataset({
       ...this.opts,
       signal: this.ctrl.signal,
-      onProgress: (p) => this.set({ bytesDone: p.bytesDone, bytesTotal: p.bytesTotal, file: p.file }),
+      onProgress: (p) => {
+        const now = performance.now();
+        if (now - lastProgress >= 80 || p.bytesDone >= p.bytesTotal) {
+          lastProgress = now;
+          this.set({ bytesDone: p.bytesDone, bytesTotal: p.bytesTotal, file: p.file });
+        }
+      },
     }).then(
       () => this.set({ state: 'done', file: undefined, errorMessage: undefined }),
       (err) => {

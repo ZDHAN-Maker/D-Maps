@@ -72,6 +72,7 @@ export function RegionsProvider({ children }: { children: ReactNode }) {
       } catch { /* evicted or corrupt: the manager shows it as partial; Verify explains */ }
     }
     if (seq !== syncSeq.current) return;
+    await new Promise((r) => setTimeout(r, 0));
     setRuntimes(Object.fromEntries([...loaded.current].map(([id, v]) => [id, v.runtime])));
   }, []);
 

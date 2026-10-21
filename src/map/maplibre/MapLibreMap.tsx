@@ -7,7 +7,18 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 setWorkerUrl(maplibreWorkerUrl);
 import { Compass, Box } from 'lucide-react';
 import { createMapLibreStyle } from './style';
-import { featuresToGeoJson } from './featuresToGeojson';
+import { featuresToGeoJson, createBuildingSpatialIndex, type BuildingSpatialIndex, type GeoJsonFeature } from './featuresToGeojson';
+import type { FeaturesFile } from '../features';
+
+const buildingIndexCache = new WeakMap<FeaturesFile, BuildingSpatialIndex>();
+function getBuildingIndex(f: FeaturesFile): BuildingSpatialIndex {
+  let idx = buildingIndexCache.get(f);
+  if (!idx) {
+    idx = createBuildingSpatialIndex(f);
+    buildingIndexCache.set(f, idx);
+  }
+  return idx;
+}
 import { registerPMTilesProtocol } from './pmtilesProtocol';
 import { MapLibrePositionPuck } from './positionPuck';
 import type { RegionRuntime } from '../../regions/regionSet';
@@ -67,6 +78,8 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
   const fromMarkerRef = useRef<Marker | null>(null);
   const toMarkerRef = useRef<Marker | null>(null);
   const fittedKey = useRef('');
+  const fittedRouteRef = useRef<string | null>(null);
+  const hasBuildingDataRef = useRef(false);
   const [pitch3D, setPitch3D] = useState(false);
   const [bearing, setBearing] = useState(0);
 
@@ -126,9 +139,18 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
 
     puckRef.current = new MapLibrePositionPuck(map);
 
+    const handleUserInteraction = (e: { originalEvent?: unknown }) => {
+      if (e?.originalEvent) {
+        onUserDrag();
+      }
+    };
+
     map.on('dragstart', () => {
       onUserDrag();
     });
+    map.on('zoomstart', handleUserInteraction);
+    map.on('rotatestart', handleUserInteraction);
+    map.on('pitchstart', handleUserInteraction);
 
     map.on('rotate', () => {
       setBearing(Math.round(map.getBearing()));
@@ -147,6 +169,7 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       } catch {
         /* ignore */
       }
+      syncBuildings();
     });
 
     map.on('click', (e) => {
@@ -156,11 +179,13 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     map.on('load', () => {
       isLoadedRef.current = true;
       syncFeatures();
+      syncBuildings();
       syncRoute();
     });
 
-    map.on('styledata', () => {
+    map.on('style.load', () => {
       syncFeatures();
+      syncBuildings();
       syncRoute();
     });
 
@@ -249,6 +274,49 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
     }
   }, []);
 
+  const syncBuildings = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const source = map.getSource('buildings') as GeoJSONSource | undefined;
+    if (!source) return;
+
+    const zoom = map.getZoom();
+    if (zoom < 14.5) {
+      if (hasBuildingDataRef.current) {
+        source.setData({ type: 'FeatureCollection', features: [] });
+        hasBuildingDataRef.current = false;
+      }
+      return;
+    }
+
+    const bounds = map.getBounds();
+    const bbox = {
+      minLon: bounds.getWest(),
+      minLat: bounds.getSouth(),
+      maxLon: bounds.getEast(),
+      maxLat: bounds.getNorth(),
+    };
+
+    const currentRegions = regionsRef.current;
+    const buildingFeatures: GeoJsonFeature[] = [];
+    for (const r of currentRegions) {
+      if (r.features && r.features.buildings.length > 5000) {
+        const idx = getBuildingIndex(r.features);
+        const feats = idx.query(bbox, 3000);
+        for (let i = 0; i < feats.length; i++) {
+          buildingFeatures.push(feats[i]);
+          if (buildingFeatures.length >= 3000) break;
+        }
+      }
+    }
+
+    source.setData({
+      type: 'FeatureCollection',
+      features: buildingFeatures,
+    });
+    hasBuildingDataRef.current = buildingFeatures.length > 0;
+  }, []);
+
   const syncRoute = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -273,39 +341,47 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       });
 
       if (!navigating && coords.length >= 2) {
-        let minLon = coords[0][0], maxLon = coords[0][0];
-        let minLat = coords[0][1], maxLat = coords[0][1];
-        for (let i = 1; i < coords.length; i++) {
-          const [lon, lat] = coords[i];
-          if (lon < minLon) minLon = lon;
-          if (lon > maxLon) maxLon = lon;
-          if (lat < minLat) minLat = lat;
-          if (lat > maxLat) maxLat = lat;
+        const routeKey = `${coords.length}:${coords[0].join(',')}-${coords[coords.length - 1].join(',')}`;
+        if (routeKey !== fittedRouteRef.current) {
+          fittedRouteRef.current = routeKey;
+          let minLon = coords[0][0], maxLon = coords[0][0];
+          let minLat = coords[0][1], maxLat = coords[0][1];
+          for (let i = 1; i < coords.length; i++) {
+            const [lon, lat] = coords[i];
+            if (lon < minLon) minLon = lon;
+            if (lon > maxLon) maxLon = lon;
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+          }
+          const bounds: LngLatBoundsLike = [
+            [minLon, minLat],
+            [maxLon, maxLat],
+          ];
+          map.fitBounds(bounds, { padding: 50, duration: 800 });
         }
-        const bounds: LngLatBoundsLike = [
-          [minLon, minLat],
-          [maxLon, maxLat],
-        ];
-        map.fitBounds(bounds, { padding: 50, duration: 800 });
       }
     } else {
+      fittedRouteRef.current = null;
       source.setData({ type: 'FeatureCollection', features: [] });
     }
   }, [navigating]);
 
   // Feed installed vector features to MapLibre GeoJSON source
   useEffect(() => {
+    if (!active) return;
     if (isLoadedRef.current) {
       syncFeatures();
+      syncBuildings();
     }
-  }, [regions, syncFeatures]);
+  }, [active, regions, syncFeatures, syncBuildings]);
 
   // Feed route line to MapLibre GeoJSON source
   useEffect(() => {
+    if (!active) return;
     if (isLoadedRef.current) {
       syncRoute();
     }
-  }, [shownRoute, navigating, syncRoute]);
+  }, [active, shownRoute, navigating, syncRoute]);
 
   // Markers for Origin ('from') and Destination ('to')
   useEffect(() => {
@@ -365,28 +441,19 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
 
     puckRef.current?.update(fix, stale);
 
-    if (following) {
-      if (navigating) {
-        // Google Maps Navigation 3D driving mode: auto-rotate heading + 50° pitch tilt!
-        const targetBearing = fix.heading !== null && fix.heading !== undefined && Number.isFinite(fix.heading)
-          ? fix.heading
-          : map.getBearing();
+    if (following && navigating) {
+      // Google Maps Navigation 3D driving mode: auto-rotate heading + 50° pitch tilt!
+      const targetBearing = fix.heading !== null && fix.heading !== undefined && Number.isFinite(fix.heading)
+        ? fix.heading
+        : map.getBearing();
 
-        map.easeTo({
-          center: [fix.lon, fix.lat],
-          zoom: Math.max(map.getZoom(), 17),
-          bearing: targetBearing,
-          pitch: 50,
-          duration: 350,
-        });
-      } else {
-        // Standard 2D follow
-        map.easeTo({
-          center: [fix.lon, fix.lat],
-          zoom: Math.max(map.getZoom(), 16),
-          duration: 350,
-        });
-      }
+      map.easeTo({
+        center: [fix.lon, fix.lat],
+        zoom: Math.max(map.getZoom(), 17),
+        bearing: targetBearing,
+        pitch: 50,
+        duration: 350,
+      });
     }
   }, [fix, stale, following, navigating]);
 

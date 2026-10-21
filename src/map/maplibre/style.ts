@@ -18,8 +18,15 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
       features: {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: [] },
-        tolerance: 0.8,
-        buffer: 64,
+        tolerance: 1.5,
+        buffer: 16,
+        maxzoom: 14,
+      },
+      buildings: {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        tolerance: 0.5,
+        buffer: 0,
         maxzoom: 16,
       },
       route: {
@@ -94,11 +101,24 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
           'line-width': 2,
         },
       },
-      // 3D Buildings with fill-extrusion
+      // 3D Buildings with fill-extrusion (base dataset or viewport source)
       {
         id: 'buildings',
         type: 'fill-extrusion',
         source: 'features',
+        filter: ['==', ['get', 'type'], 'building'],
+        minzoom: 15,
+        paint: {
+          'fill-extrusion-color': pal.buildingFill,
+          'fill-extrusion-height': 8,
+          'fill-extrusion-base': 0,
+          'fill-extrusion-opacity': 0.95,
+        },
+      },
+      {
+        id: 'buildings-viewport',
+        type: 'fill-extrusion',
+        source: 'buildings',
         filter: ['==', ['get', 'type'], 'building'],
         minzoom: 15,
         paint: {

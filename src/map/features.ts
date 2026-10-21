@@ -89,6 +89,7 @@ export function buildFeatureLayers(f: FeaturesFile, renderer: L.Renderer, pal: P
     minor: [number, number][][];
     foot: [number, number][][];
     buildings: [number, number][][];
+    rawBuildings?: number[][];
   }
   const grid = new Map<string, CellData>();
 
@@ -122,17 +123,36 @@ export function buildFeatureLayers(f: FeaturesFile, renderer: L.Renderer, pal: P
     }
   }
 
-  for (const flat of f.buildings) {
-    const { pts, minLa, maxLa, minLo, maxLo } = decodeAndBbox(flat);
-    if (pts.length < 3) continue;
-    const gx0 = Math.floor(minLo / CELL_SIZE), gx1 = Math.floor(maxLo / CELL_SIZE);
-    const gy0 = Math.floor(minLa / CELL_SIZE), gy1 = Math.floor(maxLa / CELL_SIZE);
-    for (let gx = gx0; gx <= gx1; gx++) {
-      for (let gy = gy0; gy <= gy1; gy++) {
-        const k = `${gx}:${gy}`;
-        let cell = grid.get(k);
-        if (!cell) { cell = { minor: [], foot: [], buildings: [] }; grid.set(k, cell); }
-        cell.buildings.push(pts);
+  // Large datasets (>5k buildings): index raw building flat arrays lazily without upfront point decoding
+  const isLargeBuildings = f.buildings.length > 5000;
+  if (isLargeBuildings) {
+    for (const flat of f.buildings) {
+      if (flat.length < 6) continue;
+      const gx = Math.floor((flat[1] / f.scale) / CELL_SIZE);
+      const gy = Math.floor((flat[0] / f.scale) / CELL_SIZE);
+      const k = `${gx}:${gy}`;
+      let cell = grid.get(k);
+      if (!cell) {
+        cell = { minor: [], foot: [], buildings: [], rawBuildings: [flat] };
+        grid.set(k, cell);
+      } else {
+        if (!cell.rawBuildings) cell.rawBuildings = [];
+        cell.rawBuildings.push(flat);
+      }
+    }
+  } else {
+    for (const flat of f.buildings) {
+      const { pts, minLa, maxLa, minLo, maxLo } = decodeAndBbox(flat);
+      if (pts.length < 3) continue;
+      const gx0 = Math.floor(minLo / CELL_SIZE), gx1 = Math.floor(maxLo / CELL_SIZE);
+      const gy0 = Math.floor(minLa / CELL_SIZE), gy1 = Math.floor(maxLa / CELL_SIZE);
+      for (let gx = gx0; gx <= gx1; gx++) {
+        for (let gy = gy0; gy <= gy1; gy++) {
+          const k = `${gx}:${gy}`;
+          let cell = grid.get(k);
+          if (!cell) { cell = { minor: [], foot: [], buildings: [] }; grid.set(k, cell); }
+          cell.buildings.push(pts);
+        }
       }
     }
   }
@@ -187,6 +207,12 @@ export function buildFeatureLayers(f: FeaturesFile, renderer: L.Renderer, pal: P
       }
       if (cell.foot.length > 0) {
         cl.foot = L.polyline(cell.foot, { ...common, color: pal.foot, weight: 1.2, dashArray: '2 3' });
+      }
+      if (cell.rawBuildings && cell.rawBuildings.length > 0 && cell.buildings.length === 0) {
+        for (const flat of cell.rawBuildings) {
+          const pts = decodeDeltas(flat, f.scale);
+          if (pts.length >= 3) cell.buildings.push(pts);
+        }
       }
       if (cell.buildings.length > 0) {
         cl.buildings = L.polygon(cell.buildings, { ...common, color: pal.buildingStroke, weight: 0.6, fillColor: pal.buildingFill, fillOpacity: 1 });

@@ -1,6 +1,6 @@
 import type { LatLon, RouteError, RouteResult } from '../routing';
 import type { LocalRouter } from '../navigation';
-import type { SearchHit, SearchIndex, SearchOptions } from '../search';
+import type { PlaceRecord, SearchHit, SearchIndex, SearchOptions } from '../search';
 import type { FeaturesFile } from '../map/features';
 
 export type BBox = [minLat: number, minLon: number, maxLat: number, maxLon: number];
@@ -12,6 +12,7 @@ export interface RegionRuntime {
   engine: LocalRouter;
   index: Pick<SearchIndex, 'search'>;
   features: FeaturesFile;
+  places?: PlaceRecord[];
 }
 
 export interface RegionHit extends SearchHit { regionId: string }

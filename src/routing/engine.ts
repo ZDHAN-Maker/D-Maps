@@ -74,27 +74,47 @@ export class RoutingEngine {
     const ends = this.grid.nearest(to.lat, to.lon, (n) => this.hasIn[n] === 1, SNAP_CANDIDATES, this.maxSnapM);
     if (ends.length === 0) return { ok: false, code: 'NO_ROAD_NEAR_END' };
 
-    // Try snap candidates nearest-first: a closest node can sit in a tiny disconnected island.
+    // Evaluate snap candidates to select the fastest and most accurate door-to-door route.
+    // Rather than blindly taking the first connected candidate pair (which could be an alley or detour),
+    // we evaluate candidates and choose the one that minimizes total travel time (road duration + snap transition).
+    let bestResult: RouteResult | null = null;
+    let bestScore = Infinity;
     let expanded = 0;
+    const ACCESS_SPEED_MS = 1.39; // ~5 km/h walking / maneuver speed to road network
+
     for (const s of starts) {
       for (const d of ends) {
         const path = this.router.route(s.node, d.node);
         if (!path) { continue; }
         expanded += path.expanded;
-        const { steps, geometry } = buildSteps(g, path.nodes, path.edges);
-        return {
-          ok: true,
-          distanceM: path.distanceM,
-          durationS: path.durationS,
-          geometry,
-          steps,
-          snapped: {
-            from: { lat: latOf(g, s.node), lon: lonOf(g, s.node), offsetM: s.distanceM },
-            to: { lat: latOf(g, d.node), lon: lonOf(g, d.node), offsetM: d.distanceM },
-          },
-          stats: { expandedNodes: expanded, computeMs: performance.now() - t0 },
-        };
+
+        const effectiveDuration = path.durationS + (s.distanceM + d.distanceM) / ACCESS_SPEED_MS;
+        if (
+          effectiveDuration < bestScore - 0.1 ||
+          (Math.abs(effectiveDuration - bestScore) <= 0.1 && (!bestResult || path.distanceM < bestResult.distanceM))
+        ) {
+          bestScore = effectiveDuration;
+          const { steps, geometry } = buildSteps(g, path.nodes, path.edges);
+          bestResult = {
+            ok: true,
+            distanceM: path.distanceM,
+            durationS: path.durationS,
+            geometry,
+            steps,
+            snapped: {
+              from: { lat: latOf(g, s.node), lon: lonOf(g, s.node), offsetM: s.distanceM },
+              to: { lat: latOf(g, d.node), lon: lonOf(g, d.node), offsetM: d.distanceM },
+            },
+            stats: { expandedNodes: expanded, computeMs: 0 },
+          };
+        }
       }
+    }
+
+    if (bestResult) {
+      bestResult.stats.expandedNodes = expanded;
+      bestResult.stats.computeMs = performance.now() - t0;
+      return bestResult;
     }
     return { ok: false, code: 'NO_ROUTE' };
   }

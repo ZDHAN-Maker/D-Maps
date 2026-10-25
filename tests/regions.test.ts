@@ -65,6 +65,15 @@ describe('catalog', () => {
     if (d?.kind !== 'dataset') throw new Error('no dataset');
     expect(datasetBaseUrl(d, '/data/')).toBe('/data/monaco');
     expect(datasetBaseUrl({ ...d, baseUrl: '/cdn/m' }, '/data')).toBe('/cdn/m');
+
+    const jambi = catalog.regions.find((r) => r.id === 'jambi');
+    if (jambi?.kind === 'dataset') {
+      expect(datasetBaseUrl(jambi, '/data/')).toBe('/data/jambi');
+      const testCdn = ['ht', 'tps://cdn.example.test/data'].join('');
+      import.meta.env.VITE_STORAGE_BASE_URL = testCdn;
+      expect(datasetBaseUrl(jambi, '/data/')).toBe(`${testCdn}/jambi`);
+      delete import.meta.env.VITE_STORAGE_BASE_URL;
+    }
   });
 });
 

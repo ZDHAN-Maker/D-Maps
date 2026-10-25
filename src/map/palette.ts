@@ -23,7 +23,7 @@ export const PALETTES: Record<'light' | 'dark', Palette> = {
     buildingStroke: '#CBD5E1',
   },
   dark: {
-    water: '#0284C7',
+    water: '#1F5A73',
     green: '#059669',
     coast: '#38BDF8',
     roadCasing: '#0B1220',

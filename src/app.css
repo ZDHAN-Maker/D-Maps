@@ -4,9 +4,9 @@
 
 :root {
   /* Vibrant & accessible color tokens */
-  --brand: #1D4ED8;          /* Rich Royal Blue */
-  --brand-hover: #1E40AF;
-  --brand-light: #EFF6FF;
+  --brand: #881337;          /* Luxury Red Maroon */
+  --brand-hover: #701A75;
+  --brand-light: #FFF1F2;
   --on-brand: #FFFFFF;
 
   --mint: #10B981;           /* Emerald / Success */
@@ -34,7 +34,7 @@
   --error-border: #FCA5A5;
   --error-ink: #991B1B;
 
-  --pressed-bg: #DBEAFE;
+  --pressed-bg: #FFE4E6;
   --map-bg: #E2E8F0;
 
   /* Radii */
@@ -58,10 +58,10 @@
 }
 
 :root[data-theme='dark'] {
-  --brand: #38BDF8;          /* Electric Sky Blue */
-  --brand-hover: #0284C7;
-  --brand-light: #0C4A6E;
-  --on-brand: #082F49;
+  --brand: #FB7185;          /* Glowing Rose Maroon */
+  --brand-hover: #F43F5E;
+  --brand-light: rgba(136, 19, 55, 0.25);
+  --on-brand: #4C0519;
 
   --mint: #34D399;
   --sky: #38BDF8;
@@ -84,7 +84,7 @@
   --error-border: #7F1D1D;
   --error-ink: #FECACA;
 
-  --pressed-bg: #1E3A8A;
+  --pressed-bg: #4C0519;
   --map-bg: #0B1120;
 
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
@@ -97,10 +97,10 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --brand: #38BDF8;
-    --brand-hover: #0284C7;
-    --brand-light: #0C4A6E;
-    --on-brand: #082F49;
+    --brand: #FB7185;
+    --brand-hover: #F43F5E;
+    --brand-light: rgba(136, 19, 55, 0.25);
+    --on-brand: #4C0519;
 
     --mint: #34D399;
     --sky: #38BDF8;
@@ -123,7 +123,7 @@
     --error-border: #7F1D1D;
     --error-ink: #FECACA;
 
-    --pressed-bg: #1E3A8A;
+    --pressed-bg: #4C0519;
     --map-bg: #0B1120;
 
     --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
@@ -199,8 +199,8 @@ html, body, #root { height: 100%; margin: 0; background: var(--paper); color: va
   text-transform: uppercase;
 }
 :root[data-theme='dark'] .badge {
-  background: rgba(56, 189, 248, 0.15);
-  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(136, 19, 55, 0.25);
+  border-color: rgba(251, 113, 133, 0.35);
 }
 
 /* ---- Cards & Content ----------------------------------------------------- */
@@ -535,7 +535,7 @@ input[type='search']:focus, input[type='text']:focus {
   border-radius: 9999px;
 }
 :root[data-theme='dark'] .steps small {
-  background: rgba(56, 189, 248, 0.15);
+  background: rgba(136, 19, 55, 0.25);
 }
 
 .attr {
@@ -556,7 +556,7 @@ input[type='search']:focus, input[type='text']:focus {
   position: absolute;
   inset: 5px;
   border-radius: 50%;
-  background: #1D4ED8;
+  background: #881337;
   border: 3px solid #FFFFFF;
   box-shadow: 0 0 0 1.5px rgba(15, 23, 42, 0.3), var(--shadow);
 }
@@ -570,7 +570,7 @@ input[type='search']:focus, input[type='text']:focus {
   transform-origin: 8px 22px;
   border-left: 8px solid transparent;
   border-right: 8px solid transparent;
-  border-bottom: 14px solid #1D4ED8;
+  border-bottom: 14px solid #881337;
   filter: drop-shadow(0 0 1px #FFFFFF);
 }
 .pos-icon.stale .pos-dot { background: #94A3B8; }
@@ -603,7 +603,7 @@ input[type='search']:focus, input[type='text']:focus {
   display: flex;
   gap: 16px;
   align-items: center;
-  background: linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%);
+  background: linear-gradient(135deg, #881337 0%, #4C0519 100%);
   color: #FFFFFF;
   border-radius: var(--r-xl);
   padding: 18px 22px;
@@ -611,8 +611,8 @@ input[type='search']:focus, input[type='text']:focus {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 :root[data-theme='dark'] .nav-card {
-  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
-  border-color: rgba(56, 189, 248, 0.3);
+  background: linear-gradient(135deg, #4C0519 0%, #1E293B 100%);
+  border-color: rgba(251, 113, 133, 0.35);
 }
 .nav-icon { flex: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
 .nav-dist { font-size: 2.2rem; font-weight: 800; line-height: 1.05; letter-spacing: -0.02em; }
@@ -976,16 +976,16 @@ ul.plain {
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 .pill-update, .pill-downloading, .pill-paused {
-  background: #EFF6FF;
-  color: #1E40AF;
-  border: 1px solid #BFDBFE;
+  background: #FFF1F2;
+  color: #881337;
+  border: 1px solid #FECDD3;
 }
 :root[data-theme='dark'] .pill-update,
 :root[data-theme='dark'] .pill-downloading,
 :root[data-theme='dark'] .pill-paused {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38BDF8;
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: rgba(136, 19, 55, 0.25);
+  color: #FB7185;
+  border: 1px solid rgba(251, 113, 133, 0.35);
 }
 .pill-failed {
   background: #FEF2F2;

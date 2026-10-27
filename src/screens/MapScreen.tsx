@@ -36,8 +36,8 @@ const CATEGORY_ICON: Record<string, LucideIcon> = {
 const CHIPS = ['hospital', 'pharmacy', 'fuel', 'restaurant', 'hotel', 'atm', 'attraction'] as const;
 
 const OVERLAY = {
-  light: { line: '#2563EB', casing: '#FFFFFF', dotStroke: '#0F172A', from: '#10B981', to: '#EF4444' },
-  dark: { line: '#00F0FF', casing: '#020617', dotStroke: '#FFFFFF', from: '#34D399', to: '#F43F5E' },
+  light: { line: '#881337', casing: '#FFFFFF', dotStroke: '#4C0519', from: '#10B981', to: '#E11D48' },
+  dark: { line: '#FB7185', casing: '#0B1120', dotStroke: '#FFE4E6', from: '#34D399', to: '#F43F5E' },
 } as const;
 
 interface Props {

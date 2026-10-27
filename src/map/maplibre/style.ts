@@ -6,7 +6,7 @@ export function createMapLibreStyle(theme: 'light' | 'dark' = 'light'): StyleSpe
   const pal: Palette = PALETTES[theme];
   const landColor = theme === 'dark' ? '#0F172A' : '#F8FAFC';
   const routeCasing = theme === 'dark' ? '#020617' : '#FFFFFF';
-  const routeLine = theme === 'dark' ? '#00F0FF' : '#2563EB';
+  const routeLine = theme === 'dark' ? '#FB7185' : '#881337';
 
   return {
     version: 8,

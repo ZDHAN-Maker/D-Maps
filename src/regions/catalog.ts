@@ -106,8 +106,14 @@ export function bytesByComponent(files: { name: string; bytes: number }[]): Reco
   return out;
 }
 
-export const datasetBaseUrl = (r: CatalogDataset, catalogBase: string): string =>
-  r.baseUrl ?? `${catalogBase.replace(/\/+$/, '')}/${r.id}`;
+export const datasetBaseUrl = (r: CatalogDataset, catalogBase: string): string => {
+  if (r.baseUrl) return r.baseUrl;
+  const envStorage = import.meta.env.VITE_STORAGE_BASE_URL;
+  if (envStorage && !r.testFixture) {
+    return `${envStorage.replace(/\/+$/, '')}/${r.id}`;
+  }
+  return `${catalogBase.replace(/\/+$/, '')}/${r.id}`;
+};
 
 const KV_KEY = 'catalog.cache';
 export interface CachedCatalog { catalog: CatalogFile; fetchedAt: number }

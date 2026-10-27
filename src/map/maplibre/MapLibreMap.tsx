@@ -129,8 +129,8 @@ const MapLibreMap = forwardRef<MapLibreMapHandle, Props>(function MapLibreMap(
       map = new Map({
         container: containerRef.current,
         style: createMapLibreStyle(theme),
-        center: [103.6, -1.6], // Default near central Sumatra / Jambi
-        zoom: 6,
+        center: [117.0, -2.5], // Center of Indonesian archipelago
+        zoom: 4.5,
         maxPitch: 65,
         pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 2),
         canvasContextAttributes: {
